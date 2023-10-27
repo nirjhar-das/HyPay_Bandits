@@ -67,7 +67,7 @@ class HybridBandits:
 
     def step(self, action):
         if self.model_type == 'Linear':
-            noise = self.rng.standard_normal()
+            noise = self.rng.normal(scale=0.01)
             reward = np.dot(self.parameters['theta'], self.arms[action][0]) + \
                         np.dot(self.parameters['beta'][action], self.arms[action][1])
             noisy_reward = reward + noise
