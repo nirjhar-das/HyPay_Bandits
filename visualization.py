@@ -2,24 +2,32 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import os
+import re
 
-def main(input_file, output_folder):
-    colors = plt.cm.get_cmap('hsv', 1)
-    df = pd.read_csv(input_file)
-    x = np.arange(1, len(df)+1)
+def main(input_folder, output_folder):
+#    colors = plt.cm.get_cmap('hsv', 1)
     fig, ax = plt.subplots(2, 2, figsize=(16, 16))
-    ax[0][0].plot(x, df['mean_reward'], color=colors(0))
-    min_reward = np.array(df['mean_reward']) - np.array(df['std_reward'])
-    max_reward = np.array(df['mean_reward']) + np.array(df['std_reward'])
-    ax[0][0].fill_between(x, min_reward, max_reward, facecolor=colors(0), alpha=0.2)
+    for root, dirs, files in os.walk(input_folder):
+        for filename in files:
+            if filename[-4:] == '.csv':
+                df = pd.read_csv(filename)
+                idx_arr = [m.start() for m in re.finditer('_', filename)]
+                algo_name = filename[idx_arr[-2]+1 : idx_arr[-1]]
+            else:
+                continue
+            x = np.arange(1, len(df)+1)
+            ax[0][0].plot(x, df['mean_reward'], label=algo_name)
+            min_reward = np.array(df['mean_reward']) - np.array(df['std_reward'])
+            max_reward = np.array(df['mean_reward']) + np.array(df['std_reward'])
+            ax[0][0].fill_between(x, min_reward, max_reward, alpha=0.2)
 
-    ax[0][1].plot(x, df['mean_regret'], color=colors(0))
-    min_regret = np.array(df['mean_regret']) - np.array(df['std_regret'])
-    max_regret = np.array(df['mean_regret']) + np.array(df['std_regret'])
-    ax[0][1].fill_between(x, min_regret, max_regret, facecolor=colors(0), alpha=0.2)
+            ax[0][1].plot(x, df['mean_regret'], label=algo_name)
+            min_regret = np.array(df['mean_regret']) - np.array(df['std_regret'])
+            max_regret = np.array(df['mean_regret']) + np.array(df['std_regret'])
+            ax[0][1].fill_between(x, min_regret, max_regret, alpha=0.2)
 
-    ax[1][0].plot(x, df['time_avg_reward'], color=colors(0))
-    ax[1][1].plot(x, df['time_avg_regret'], color=colors(0))
+            ax[1][0].plot(x, df['time_avg_reward'], label=algo_name)
+            ax[1][1].plot(x, df['time_avg_regret'], label=algo_name)
 
     for i in range(2):
         for j in range(2):
@@ -37,4 +45,4 @@ def main(input_file, output_folder):
 
 
 if __name__ == '__main__':
-    main('Testbench_1_HyLinUCB_1.csv', '.')
+    main('.', '.')

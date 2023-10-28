@@ -10,7 +10,7 @@ class HyLinUCB(Algorithm):
         self.S1 = S1
         self.S2 = S2
         self.lmbda = lmbda
-        self.gamma = 0.01 * self.d
+        self.gamma = 0.001 * self.d
         self.delta = delta
         self.theta_hat = np.zeros_like(self.arms[0][0])
         self.beta_hat_arr = []
@@ -24,7 +24,6 @@ class HyLinUCB(Algorithm):
             self.B_arr.append(np.zeros((self.d, self.k)))
             self.v_arr.append(np.zeros_like(self.arms[0][1]))
             self.t_i_arr.append(0)
-        self.V = self.lmbda * np.eye(self.d)
         self.u = np.zeros_like(self.arms[0][0])
         self.V_tilde = self.lmbda * np.eye(self.d)
         self.t = 0
@@ -48,8 +47,8 @@ class HyLinUCB(Algorithm):
     def get_reward_estimate(self, i):
         reward = np.dot(self.arms[i][0], self.theta_hat) +\
                     np.dot(self.arms[i][1], self.beta_hat_arr[i]) +\
-                    self.q_theta() * np.sqrt(np.dot(self.arms[i][0], np.dot(np.linalg.inv(self.V_tilde), self.arms[i][0]))) +\
-                    self.p_beta(i) * np.sqrt(np.dot(self.arms[i][1], np.dot(np.linalg.inv(self.W_arr[i]), self.arms[i][1])))
+                    0.0001 * self.q_theta() * np.sqrt(np.dot(self.arms[i][0], np.dot(np.linalg.inv(self.V_tilde), self.arms[i][0]))) +\
+                    0.001 * self.p_beta(i) * np.sqrt(np.dot(self.arms[i][1], np.dot(np.linalg.inv(self.W_arr[i]), self.arms[i][1])))
         return reward
 
     def next_action(self):
@@ -65,7 +64,6 @@ class HyLinUCB(Algorithm):
         super().update(reward, regret)
         x_t_vec = self.arms[self.a_t][0].reshape(-1, 1)
         z_t_vec = self.arms[self.a_t][1].reshape(-1, 1)
-        self.V = self.V +  x_t_vec @ x_t_vec.T
         self.u += np.dot(self.B_arr[self.a_t] @ np.linalg.inv(self.W_arr[self.a_t]), \
                    self.v_arr[self.a_t])
         self.V_tilde = self.V_tilde + \
