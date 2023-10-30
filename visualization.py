@@ -40,7 +40,7 @@ def main(input_folder, output_folder):
     ax[1][0].set_ylabel('Time Avg Reward')
     ax[1][1].set_ylabel('Time Avg Regret')
 
-    plt.savefig(os.path.join(output_folder, 'Result.png'), dpi=600)
+    plt.savefig(os.path.join(output_folder, 'Result.png'), dpi=200)
     plt.close()
 
 

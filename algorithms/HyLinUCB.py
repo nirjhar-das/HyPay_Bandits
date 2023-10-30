@@ -10,7 +10,7 @@ class HyLinUCB(Algorithm):
         self.S1 = S1
         self.S2 = S2
         self.lmbda = lmbda
-        self.gamma = 0.001 * self.d
+        self.gamma = 0.0001 * self.d
         self.delta = delta
         self.theta_hat = np.zeros_like(self.arms[0][0])
         self.beta_hat_arr = []

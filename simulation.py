@@ -51,14 +51,14 @@ if __name__ == '__main__':
     config['seed'] = np.random.randint(1098321)
     print('Seed:', config['seed'])
     config['model_type'] = 'Linear'
-    config['num_labels'] = 50
-    config['theta_dim'] = 20
-    config['beta_dim'] = 4
+    config['num_labels'] = 20
+    config['theta_dim'] = 10
+    config['beta_dim'] = 2
     config['theta_norm'] = 5.0
     config['beta_norm'] = 3.0
     config['x_norm'] = 1.0
     config['z_norm'] = 1.0
     env_name = 'Testbench_1'
-    main(env_name, config, num_trials=5, delta=0.01, lmbda=0.01, T=10000)
+    main(env_name, config, num_trials=5, delta=0.01, lmbda=0.0001, T=100000)
 
     
