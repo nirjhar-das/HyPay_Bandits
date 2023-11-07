@@ -11,6 +11,7 @@ class Algorithm:
     def next_action(self):
         return 0
     
-    def update(self, reward, regret):
+    def update(self, reward, regret, arm_set):
         self.rewards.append(reward)
         self.regrets.append(regret)
+        self.arms = arm_set

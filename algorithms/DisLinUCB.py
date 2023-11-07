@@ -37,7 +37,7 @@ class DisLinUCB(Algorithm):
     
     def get_reward_estimate(self, i):
         reward = np.dot(self.arms[i], self.theta_hat_arr[i]) +\
-                    0.05 * self.p_beta(i) * np.sqrt(np.dot(self.arms[i], np.dot(np.linalg.inv(self.W_arr[i]), self.arms[i])))
+                    self.p_beta(i) * np.sqrt(np.dot(self.arms[i], np.dot(np.linalg.inv(self.W_arr[i]), self.arms[i])))
         return reward
 
     def next_action(self):
@@ -49,8 +49,9 @@ class DisLinUCB(Algorithm):
                 self.a_t = i
         return self.a_t
     
-    def update(self, reward, regret):
-        super().update(reward, regret)
+    def update(self, reward, regret, arm_set):
+        super().update(reward, regret, arm_set)
+        self.modify_arms()
         x_t_vec = self.arms[self.a_t].reshape(-1, 1)
         self.W_arr[self.a_t] += x_t_vec @ x_t_vec.T
         self.v_arr[self.a_t] += reward * self.arms[self.a_t]

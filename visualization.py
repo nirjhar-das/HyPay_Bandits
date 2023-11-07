@@ -4,13 +4,13 @@ import numpy as np
 import os
 import re
 
-def main(input_folder, output_folder):
+def main(input_folder):
 #    colors = plt.cm.get_cmap('hsv', 1)
     fig, ax = plt.subplots(2, 2, figsize=(16, 16))
     for root, dirs, files in os.walk(input_folder):
         for filename in files:
             if filename[-4:] == '.csv':
-                df = pd.read_csv(filename)
+                df = pd.read_csv(os.path.join(root, filename))
                 idx_arr = [m.start() for m in re.finditer('_', filename)]
                 algo_name = filename[idx_arr[-2]+1 : idx_arr[-1]]
             else:
@@ -39,10 +39,10 @@ def main(input_folder, output_folder):
     ax[0][1].set_ylabel('Cumulative Regret')
     ax[1][0].set_ylabel('Time Avg Reward')
     ax[1][1].set_ylabel('Time Avg Regret')
-
-    plt.savefig(os.path.join(output_folder, 'Result.png'), dpi=200)
+    
+    plt.savefig(os.path.join(input_folder, 'Result.png'), dpi=200)
     plt.close()
 
 
 if __name__ == '__main__':
-    main('.', '.')
+    main('./Testbench_3')
