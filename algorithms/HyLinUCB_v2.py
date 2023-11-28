@@ -2,9 +2,9 @@ from .algorithm import Algorithm
 import numpy as np
 import pandas as pd
 
-class HyLinUCB(Algorithm):
+class HyLinUCBv2(Algorithm):
     def __init__(self, arms, delta, M, N, S1, S2, lmbda, gamma, info=None):
-        super().__init__(f'HyLinUCB_{info}' if info is not None else 'HyLinUCB', arms)
+        super().__init__(f'HyLinUCBv2_{info}' if info is not None else 'HyLinUCBv2', arms)
         self.M = M
         self.N = N
         self.S1 = S1
@@ -29,26 +29,18 @@ class HyLinUCB(Algorithm):
         self.t = 0
         self.a_t = 0
     
-    def p_beta(self, i):
-        p = self.S2 * np.sqrt(self.gamma) +\
-            np.sqrt(2*np.log(1/self.delta) + \
-                    self.k * np.log(1 + (self.t_i_arr[i]*self.N*self.N)/(self.gamma * self.k))) +\
-            np.sqrt(2*np.log(1/self.delta) + \
-                    self.d * np.log(1 + (self.t*self.M*self.M)/(self.lmbda * self.d)))
-        return p
-    
     def q_theta(self):
-        q = self.S1 * np.sqrt(2 * self.lmbda) +\
+        q = self.S1 * np.sqrt(self.lmbda) +\
             np.sqrt(2*np.log(1/self.delta) + \
                     self.d * np.log(1 + (self.t*self.M*self.M)/(self.lmbda * self.d))) +\
-                    np.sqrt(2 * self.gamma * self.d * self.k * self.L * self.S2)
+                    np.sqrt(2 * self.d * self.L * self.S2)
         return q
     
     def get_reward_estimate(self, i):
+        x_tilde = self.arms[i][0] - np.dot(self.B_arr[i] @ np.linalg.inv(self.W_arr[i]), self.arms[i][1])
         reward = np.dot(self.arms[i][0], self.theta_hat) +\
                     np.dot(self.arms[i][1], self.beta_hat_arr[i]) +\
-                    self.q_theta() * np.sqrt(np.dot(self.arms[i][0], np.dot(np.linalg.inv(self.V_tilde), self.arms[i][0]))) +\
-                    self.p_beta(i) * np.sqrt(np.dot(self.arms[i][1], np.dot(np.linalg.inv(self.W_arr[i]), self.arms[i][1])))
+                    self.q_theta() * np.sqrt(np.dot(x_tilde, np.dot(np.linalg.inv(self.V_tilde), x_tilde)))
         return reward
 
     def next_action(self):

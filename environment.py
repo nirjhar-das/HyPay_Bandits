@@ -4,7 +4,7 @@ import os
 from copy import deepcopy
 
 class HybridBandits:
-    def __init__(self, name, config, load=None):
+    def __init__(self, name=None, config=None, load=None):
         if load is None:
             self.name = name
             self.seed = config['seed']
@@ -29,7 +29,7 @@ class HybridBandits:
             with open(load, 'r') as f:
                 data = json.load(f)
                 for i in range(data['num_context']):
-                    data['arms'][i] = [(np.array(a), np.array(b)) for a,b in data['arms']]
+                    data['arms'][i] = [(np.array(a), np.array(b)) for a,b in data['arms'][i]]
                 data['parameters']['theta'] = np.array(data['parameters']['theta'])
                 data['parameters']['beta'] = [np.array(beta) for beta in data['parameters']['beta']]
                 data['context_seq'] = np.array(data['context_seq'])
@@ -93,6 +93,9 @@ class HybridBandits:
     
     def get_first_action_set(self):
         return self.arms[self.context_seq[0]]
+
+    def get_max_reward(self):
+        return self.max_reward[self.context_seq[self.t % self.T]]
 
 
     def step(self, action):

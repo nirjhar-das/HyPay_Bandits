@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 
 class DisLinUCB(Algorithm):
-    def __init__(self, id, arms, delta, M, N, S1, S2, lmbda):
-        super().__init__('DisLinUCB_' + str(id), arms)
+    def __init__(self, arms, delta, M, N, S1, S2, lmbda, info=None):
+        super().__init__(f'DisLinUCB_{info}' if info is not None else 'DisLinUCB', arms)
         self.M = M
         self.N = N
         self.S = np.sqrt(S1*S1 + S2*S2)

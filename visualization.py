@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import argparse
 import os
-import re
 
 def main(input_folder):
 #    colors = plt.cm.get_cmap('hsv', 1)
@@ -11,8 +11,7 @@ def main(input_folder):
         for filename in files:
             if filename[-4:] == '.csv':
                 df = pd.read_csv(os.path.join(root, filename))
-                idx_arr = [m.start() for m in re.finditer('_', filename)]
-                algo_name = filename[idx_arr[-2]+1 : idx_arr[-1]]
+                algo_name = filename.split('_')[0]
             else:
                 continue
             x = np.arange(1, len(df)+1)
@@ -45,4 +44,7 @@ def main(input_folder):
 
 
 if __name__ == '__main__':
-    main('./Testbench_3')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--path', type=str, help='path to results folder')
+    args = parser.parse_args()
+    main(args.path)
