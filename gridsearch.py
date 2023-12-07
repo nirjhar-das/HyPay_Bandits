@@ -49,9 +49,9 @@ def multi_trial_avg_performance(algo_names, hyperparam_grid, env, num_trials):
                 k_m = k
         arr = k_m.split('_')
         if algo_name == 'LinUCBClassic':
-            best_hyperparam_dict[algo_name] = {'alpha': arr[1]}
+            best_hyperparam_dict[algo_name] = {'alpha': float(arr[1])}
         else:
-            best_hyperparam_dict[algo_name] = {'lambda': arr[1], 'gamma': arr[2]}
+            best_hyperparam_dict[algo_name] = {'lambda': float(arr[1]), 'gamma': float(arr[2])}
     
     return best_hyperparam_dict
 
@@ -66,9 +66,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', '--loadpath', type=str, required=True)
     args = parser.parse_args()
-    algo_names = ['LinUCBClassic', 'HyLinUCB', 'HyLinUCBv2', 'DisLinUCB']
-    hyper_param_grid = {'delta': 0.001, 'alpha': [0.005, 0.01, 0.05, 0.1, 0.5, 1.0],\
-                        'lambda': [0.001, 0.01, 0.05, 0.1, 0.5], \
-                        'gamma': [0.001, 0.01, 0.05, 0.1, 0.5]}
+    algo_names = ['LinUCBClassic', 'HyLinUCB', 'HyLinUCBv2']
+    hyper_param_grid = {'delta': 0.001, 'alpha': [0.0005, 0.001],\
+                        'lambda': [0.0005, 0.001], \
+                        'gamma': [0.0005, 0.001]}
     num_trials = 5
     main(args.loadpath, algo_names, hyper_param_grid, num_trials)

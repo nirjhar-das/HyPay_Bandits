@@ -5,6 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 from algorithms import HyLinUCB, DisLinUCB, LinUCBClassic, HyLinUCBv2
 from environment import HybridBandits
+from plot_rewards import create_plot
 
 def simulate(env, algo_arr, T):
     max_rew = 0
@@ -25,11 +26,12 @@ def main(env, num_trials, delta, alpha, lmbda, gamma, output_folder='.', normali
     all_rewards = [np.zeros((num_trials, T)) for _ in range(4)]
     all_regrets = [np.zeros((num_trials, T)) for _ in range(4)]
     for i in range(num_trials):
-        algo1 = HyLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, 0.05, 0.01)
-        algo2 = DisLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, 0.001)
-        algo3 = LinUCBClassic(env.get_first_action_set(), env.M, env.N, env.S1, env.S2, 0.5)
-        algo4 = HyLinUCBv2(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, 0.05, 0.01)
-        algo_arr = [algo1, algo2, algo3, algo4]
+        #algo1 = HyLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, 0.01, 0.01)
+        algo2 = DisLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, 0.01)
+        algo3 = LinUCBClassic(env.get_first_action_set(), env.M, env.N, env.S1, env.S2, 0.01)
+        #algo4 = HyLinUCBv2(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, 0.01, 0.01)
+        #algo_arr = [algo1, algo2, algo3, algo4]
+        algo_arr = [algo2, algo3]
         print('Simulating Trial', i+1)
         m = simulate(env, algo_arr, T)
         env.reset()
@@ -54,7 +56,8 @@ def main(env, num_trials, delta, alpha, lmbda, gamma, output_folder='.', normali
         df.to_csv(os.path.join(output_folder, \
                             f'{algo.name}_{num_trials}.csv')\
                 , index=False)
-
+        nrows = env.num_context // 5
+        create_plot(env, output_folder, nrows, 5)
     
 
 if __name__ == '__main__':
@@ -62,28 +65,29 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--loadpath', type=str, help='path to load environment from')
     parser.add_argument('-o', '--output', type=str, help='output folder path')
     parser.add_argument('-n', '--ntrials', type=int, help='number of trials', default=2)
+    parser.add_argument('-t', '--testname', type=str, required=True)
     args = parser.parse_args()
     if args.loadpath is None:
         config = {}
         config['seed'] = np.random.randint(1098321)
         print('Seed:', config['seed'])
         config['model_type'] = 'Linear'
-        config['horizon_length'] = 100000
-        config['num_labels'] = 10
-        config['num_context'] = 20
+        config['horizon_length'] = 50000
+        config['num_labels'] = 20
+        config['num_context'] = 10
         config['theta_dim'] = 5
-        config['beta_dim'] = 2
-        config['theta_norm'] = 0.8
-        config['beta_norm'] = 0.1
+        config['beta_dim'] = 5
+        config['theta_norm'] = 0.5
+        config['beta_norm'] = 0.5
         config['x_norm'] = 1.0
         config['z_norm'] = 1.0
         config['is_easy'] = False
-        env_name = 'Testbench_6'
+        env_name = args.testname
         folder = '.'
-        if args.outpath is None:
+        if args.output is None:
             out_folder = os.path.join(folder, env_name)
         else:
-            out_folder = args.outpath
+            out_folder = args.output
         if not os.path.exists(out_folder):
             os.mkdir(out_folder)
         env = HybridBandits(env_name, config)

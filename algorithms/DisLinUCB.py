@@ -2,6 +2,8 @@ from .algorithm import Algorithm
 import numpy as np
 import pandas as pd
 
+# sinhagaur88@gmail.com
+
 class DisLinUCB(Algorithm):
     def __init__(self, arms, delta, M, N, S1, S2, lmbda, info=None):
         super().__init__(f'DisLinUCB_{info}' if info is not None else 'DisLinUCB', arms)

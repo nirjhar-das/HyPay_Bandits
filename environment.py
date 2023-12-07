@@ -23,7 +23,7 @@ class HybridBandits:
             self.arms = [self.create_arms(self.easy) for _ in range(self.num_context)]
             self.T = config['horizon_length']
             self.t = 0
-            self.context_seq = self.rng.integers(10, size=self.T)
+            self.context_seq = self.rng.integers(self.num_context, size=self.T)
             self.best_arm, self.max_reward = self.get_best_arm()
         else:
             with open(load, 'r') as f:
