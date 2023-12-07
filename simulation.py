@@ -21,17 +21,27 @@ def simulate(env, algo_arr, T):
     #algo.save_results()
 
 
-def main(env, num_trials, delta, alpha, lmbda, gamma, output_folder='.', normalize_regret=False):
+def main(env, num_trials, delta, algo_dict, output_folder='.', normalize_regret=False):
     T = env.T
-    all_rewards = [np.zeros((num_trials, T)) for _ in range(4)]
-    all_regrets = [np.zeros((num_trials, T)) for _ in range(4)]
+    all_rewards = [np.zeros((num_trials, T)) for _ in range(algo_dict.keys())]
+    all_regrets = [np.zeros((num_trials, T)) for _ in range(algo_dict.keys())]
     for i in range(num_trials):
-        #algo1 = HyLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, 0.01, 0.01)
-        algo2 = DisLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, 0.01)
-        algo3 = LinUCBClassic(env.get_first_action_set(), env.M, env.N, env.S1, env.S2, 0.01)
-        #algo4 = HyLinUCBv2(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, 0.01, 0.01)
-        #algo_arr = [algo1, algo2, algo3, algo4]
-        algo_arr = [algo2, algo3]
+        algo_arr = []
+        for k in algo_dict.keys():
+            if k == 'HyLinUCB':
+                lmbda = algo_dict[k]['lambda']
+                gamma = algo_dict[k]['gamma']
+                algo_arr.append(HyLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, lmbda, gamma))
+            elif k == 'DisLinUCB':
+                lmbda = algo_dict[k]['lambda']
+                algo_arr.append(DisLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, lmbda))
+            elif k == 'LinUCBClassic':
+                alpha = algo_dict[k]['alpha']
+                algo_arr.append(LinUCBClassic(env.get_first_action_set(), env.M, env.N, env.S1, env.S2, alpha))
+            elif k == 'HyLinUCBv2':
+                lmbda = algo_dict[k]['lambda']
+                gamma = algo_dict[k]['gamma']
+                algo_arr.append(HyLinUCBv2(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, lmbda, gamma))
         print('Simulating Trial', i+1)
         m = simulate(env, algo_arr, T)
         env.reset()
