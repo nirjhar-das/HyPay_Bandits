@@ -18,9 +18,10 @@ class HybridBandits:
             self.parameters = self.create_parameters()
             self.M = config['x_norm']
             self.N = config['z_norm']
+            self.sigma = config['subgaussian']
             self.easy = config['is_easy']
             self.num_context = config['num_context']
-            self.arms = [self.create_arms(self.easy) for _ in range(self.num_context)]
+            self.arms = [self.create_arms(easy=self.easy) for _ in range(self.num_context)]
             self.T = config['horizon_length']
             self.t = 0
             self.context_seq = self.rng.integers(self.num_context, size=self.T)
@@ -50,20 +51,27 @@ class HybridBandits:
     def create_arms(self, easy=False):
         arms = []
         i = 0
+        best_arm = self.rng.integers(self.L)
+        x, z = self.M*self.parameters['theta']/np.linalg.norm(self.parameters['theta']),\
+                                self.N*self.parameters['beta'][best_arm]/np.linalg.norm(self.parameters['beta'][best_arm])
+        best_reward = np.dot(x, self.parameters['theta']) + np.dot(z, self.parameters['beta'][best_arm])
+        #print(f'Best Reward={best_reward}')
         if easy:
-            arms.append((self.M*self.parameters['theta']/np.linalg.norm(self.parameters['theta']),\
-                         self.N*self.parameters['beta'][0]/np.linalg.norm(self.parameters['beta'][0])))
-            while(i < self.L - 1):
-                x_proxy = self.rng.standard_normal(size=self.d + 1)
-                z_proxy = self.rng.standard_normal(size=self.k + 1)
-                x_i = self.N * x_proxy[:-1] / np.linalg.norm(x_proxy)
-                z_i = self.M * z_proxy[:-1] / np.linalg.norm(z_proxy)
-                reward = np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i])
-                if (reward > 1e-5) and \
-                    (reward < (1 - 0.5)*(self.M*np.linalg.norm(self.parameters['theta']) \
-                            + self.N*np.linalg.norm(self.parameters['beta'][0]))):
-                    arms.append((x_i, z_i))
+            while(i < self.L):
+                if i == best_arm:
+                    arms.append((x,z))
                     i += 1
+                else:
+                    x_proxy = self.rng.standard_normal(size=self.d + 1)
+                    z_proxy = self.rng.standard_normal(size=self.k + 1)
+                    x_i = self.N * x_proxy[:-1] / np.linalg.norm(x_proxy)
+                    z_i = self.M * z_proxy[:-1] / np.linalg.norm(z_proxy)
+                    reward = np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i])
+                    if (reward > 1e-5) and \
+                        (reward < (1 - 0.5)*best_reward):
+                        #print(f'Reward of arm {i}={reward}')
+                        arms.append((x_i, z_i))
+                        i += 1
         else:
             while(i < self.L):
                 x_proxy = self.rng.standard_normal(size=self.d + 1)
@@ -100,7 +108,7 @@ class HybridBandits:
 
     def step(self, action):
         if self.model_type == 'Linear':
-            noise = self.rng.normal(scale=0.1)
+            noise = self.rng.normal(scale=self.sigma)
             rewards = [np.dot(self.parameters['theta'], self.arms[self.context_seq[self.t]][a][0]) + \
                         np.dot(self.parameters['beta'][a], self.arms[self.context_seq[self.t]][a][1]) \
                         for a in action]

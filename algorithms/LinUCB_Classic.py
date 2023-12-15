@@ -25,20 +25,24 @@ class LinUCBClassic(Algorithm):
         self.t = 0
         self.a_t = 0
     
-    def ucb_bonus(self, i):
+    def ucb_bonus(self, i, a=None):
+        if a is None:
+            a = self.arms[i]
         V_inv = np.linalg.inv(self.V_tilde)
         W_inv = np.linalg.inv(self.W_arr[i])
-        s_i = np.dot(self.arms[i][0], np.dot(V_inv, self.arms[i][0])) -\
-                2*np.dot(self.arms[i][0], np.dot(V_inv @ self.B_arr[i] @ W_inv, self.arms[i][1])) +\
-                np.dot(self.arms[i][1], np.dot(W_inv, self.arms[i][1])) +\
-                np.dot(self.arms[i][1], np.dot(W_inv @ self.B_arr[i].T @ V_inv @ self.B_arr[i] @ W_inv, self.arms[i][1]))
+        s_i = np.dot(a[0], np.dot(V_inv, a[0])) -\
+                2*np.dot(a[0], np.dot(V_inv @ self.B_arr[i] @ W_inv, a[1])) +\
+                np.dot(a[1], np.dot(W_inv, a[1])) +\
+                np.dot(a[1], np.dot(W_inv @ self.B_arr[i].T @ V_inv @ self.B_arr[i] @ W_inv, a[1]))
         return self.alpha * np.sqrt(s_i)
     
     
-    def get_reward_estimate(self, i):
-        reward = np.dot(self.arms[i][0], self.theta_hat) +\
-                    np.dot(self.arms[i][1], self.beta_hat_arr[i]) +\
-                    self.ucb_bonus(i)
+    def get_reward_estimate(self, i, a=None):
+        if a is None:
+            a = self.arms[i]
+        reward = np.dot(a[0], self.theta_hat) +\
+                    np.dot(a[1], self.beta_hat_arr[i]) +\
+                    self.ucb_bonus(i, a)
         return reward
 
     def next_action(self):
