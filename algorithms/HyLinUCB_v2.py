@@ -53,7 +53,6 @@ class HyLinUCBv2(Algorithm):
         return self.a_t
     
     def update(self, reward, regret, arm_set):
-        super().update(reward, regret, arm_set)
         x_t_vec = self.arms[self.a_t][0].reshape(-1, 1)
         z_t_vec = self.arms[self.a_t][1].reshape(-1, 1)
         self.u += np.dot(self.B_arr[self.a_t] @ np.linalg.inv(self.W_arr[self.a_t]), \
@@ -74,6 +73,7 @@ class HyLinUCBv2(Algorithm):
             self.beta_hat_arr[i] = np.dot(np.linalg.inv(self.W_arr[i]), \
                                         self.v_arr[i] - \
                                         np.dot(self.B_arr[i].T, self.theta_hat))
+        super().update(reward, regret, arm_set)
         self.t += 1
 
     def save_results(self):

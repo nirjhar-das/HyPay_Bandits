@@ -55,13 +55,13 @@ class DisLinUCB(Algorithm):
         return self.a_t
     
     def update(self, reward, regret, arm_set):
-        super().update(reward, regret, arm_set)
-        self.modify_arms()
         x_t_vec = self.arms[self.a_t].reshape(-1, 1)
         self.W_arr[self.a_t] += x_t_vec @ x_t_vec.T
         self.v_arr[self.a_t] += reward * self.arms[self.a_t]
         self.theta_hat_arr[self.a_t] = np.dot(np.linalg.inv(self.W_arr[self.a_t]), \
                                         self.v_arr[self.a_t])
+        super().update(reward, regret, arm_set)
+        self.modify_arms()
         self.t += 1
 
     def save_results(self):

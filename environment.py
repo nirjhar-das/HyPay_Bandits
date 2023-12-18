@@ -25,6 +25,8 @@ class HybridBandits:
             self.T = config['horizon_length']
             self.t = 0
             self.context_seq = self.rng.integers(self.num_context, size=self.T)
+            #self.context_seq = self.rng.integers(5, size=self.T)
+            #self.context_seq = np.ones((self.T+1,), dtype=int)
             self.best_arm, self.max_reward = self.get_best_arm()
         else:
             with open(load, 'r') as f:
