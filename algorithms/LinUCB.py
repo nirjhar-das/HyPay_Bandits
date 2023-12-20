@@ -2,25 +2,18 @@ from .algorithm import Algorithm
 import numpy as np
 import pandas as pd
 
-# sinhagaur88@gmail.com
 
-class DisLinUCB(Algorithm):
+class LinUCB(Algorithm):
     def __init__(self, arms, delta, M, N, S1, S2, sigma, lmbda, info=None):
-        super().__init__(f'DisLinUCB_{info}' if info is not None else 'DisLinUCB', arms)
+        super().__init__(f'LinUCB_{info}' if info is not None else 'LinUCB', arms)
         self.M = np.sqrt(M*M + N*N)
-        self.S = np.sqrt(S1*S1 + S2*S2)
+        self.S = np.sqrt(S1*S1 + self.k*S2*S2)
         self.lmbda = lmbda
         self.delta = delta
         self.sigma = sigma
-        self.theta_hat_arr = []
-        self.W_arr = []
-        self.v_arr = []
-        self.t_i_arr = []
-        for i in range(self.L):
-            self.theta_hat_arr.append(np.zeros((self.d + self.k,)))
-            self.W_arr.append(self.lmbda * np.eye(self.d + self.k))
-            self.v_arr.append(np.zeros((self.d + self.k,)))
-            self.t_i_arr.append(0)
+        self.theta_hat = np.zeros((self.d + self.k*self.L,))
+        self.u = np.zeros((self.d + self.k*self.L,))
+        self.V_inv = (1/self.lmbda)* np.eye(self.d + self.k*self.L)
         self.t = 0
         self.a_t = 0
         self.modify_arms()
@@ -28,20 +21,23 @@ class DisLinUCB(Algorithm):
     def modify_arms(self):
         ls = []
         for i in range(self.L):
-            ls.append(np.concatenate((self.arms[i][0], self.arms[i][1])))
+            a = np.zeros((self.d + self.k*self.L,))
+            a[:self.d] = self.arms[i][0]
+            a[self.d + self.k*i: self.d + self.k*(i+1)] = self.arms[i][1]
+            ls.append(a)
         self.arms = ls
 
-    def p_beta(self, i):
+    def conf_radius(self):
         p = self.S * np.sqrt(self.lmbda) +\
             self.sigma*np.sqrt(2*np.log(1/self.delta) + \
-                    (self.d + self.k) * np.log(1 + (self.t_i_arr[i]*self.M*self.M)/(self.lmbda * (self.d + self.k))))
+                    (self.d + self.k*self.L) * np.log(1 + (self.t*self.M*self.M)/(self.lmbda * (self.d + self.k*self.L))))
         return p
     
     def get_reward_estimate(self, i, a=None):
         if a is None:
             a = self.arms[i]
-        reward = np.dot(a, self.theta_hat_arr[i]) +\
-                    self.p_beta(i) * np.sqrt(np.dot(a, np.dot(np.linalg.inv(self.W_arr[i]), a)))
+        reward = np.dot(a, self.theta_hat) +\
+                    self.conf_radius() * np.sqrt(np.dot(a, np.dot(self.V_inv, a)))
         return reward
 
     def next_action(self):
@@ -55,11 +51,10 @@ class DisLinUCB(Algorithm):
         return self.a_t
     
     def update(self, reward, regret, arm_set):
-        x_t_vec = self.arms[self.a_t].reshape(-1, 1)
-        self.W_arr[self.a_t] += x_t_vec @ x_t_vec.T
-        self.v_arr[self.a_t] += reward * self.arms[self.a_t]
-        self.theta_hat_arr[self.a_t] = np.dot(np.linalg.inv(self.W_arr[self.a_t]), \
-                                        self.v_arr[self.a_t])
+        Vx  = np.dot(self.V_inv, self.arms[self.a_t])
+        self.V_inv -= np.outer(Vx, Vx)/(1 + np.dot(Vx, self.arms[self.a_t]))
+        self.u += reward * self.arms[self.a_t]
+        self.theta_hat = np.dot(self.V_inv, self.u)
         super().update(reward, regret, arm_set)
         self.modify_arms()
         self.t += 1

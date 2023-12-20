@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from algorithms import HyLinUCB, DisLinUCB, LinUCBClassic, HyLinUCBv2
+from algorithms import HyLinUCB, DisLinUCB, LinUCBLangford, HyLinUCBv2
 from environment import HybridBandits
 from plot_rewards import create_plot
 
@@ -35,9 +35,9 @@ def main(env, num_trials, delta, algo_dict, output_folder='.', normalize_regret=
             elif k == 'DisLinUCB':
                 lmbda = algo_dict[k]['lambda']
                 algo_arr.append(DisLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, lmbda))
-            elif k == 'LinUCBClassic':
+            elif k == 'LinUCBLangford':
                 alpha = algo_dict[k]['alpha']
-                algo_arr.append(LinUCBClassic(env.get_first_action_set(), env.M, env.N, env.S1, env.S2, alpha))
+                algo_arr.append(LinUCBLangford(env.get_first_action_set(), env.M, env.N, env.S1, env.S2, alpha))
             elif k == 'HyLinUCBv2':
                 lmbda = algo_dict[k]['lambda']
                 gamma = algo_dict[k]['gamma']

@@ -2,9 +2,9 @@ from .algorithm import Algorithm
 import numpy as np
 import pandas as pd
 
-class LinUCBClassic(Algorithm):
+class LinUCBLangford(Algorithm):
     def __init__(self, arms, M, N, S1, S2, alpha, info=None):
-        super().__init__(f'LinUCBClassic_{info}' if info is not None else 'LinUCBClassic', arms)
+        super().__init__(f'LinUCBLangford_{info}' if info is not None else 'LinUCBLangford', arms)
         self.M = M
         self.N = N
         self.S1 = S1
@@ -52,6 +52,7 @@ class LinUCBClassic(Algorithm):
             reward = self.get_reward_estimate(i)
             if reward > max_reward:
                 self.a_t = i
+                max_reward = reward
         return self.a_t
     
     def update(self, reward, regret, arm_set):

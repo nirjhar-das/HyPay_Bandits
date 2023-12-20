@@ -50,6 +50,7 @@ class HyLinUCBv2(Algorithm):
             reward = self.get_reward_estimate(i)
             if reward > max_reward:
                 self.a_t = i
+                max_reward = reward
         return self.a_t
     
     def update(self, reward, regret, arm_set):

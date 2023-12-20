@@ -4,16 +4,16 @@ import argparse
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from algorithms import HyLinUCB, DisLinUCB, LinUCBClassic, HyLinUCBv2
+from algorithms import HyLinUCB, DisLinUCB, LinUCBLangford, HyLinUCBv2
 from environment import HybridBandits
 from simulation import simulate
 
 def single_trial_algo_gridsearch(algo_names, hyperparam_grid, env):
     algo_list = []
     for algo_name in algo_names:
-        if algo_name == 'LinUCBClassic':
+        if algo_name == 'LinUCBLangford':
             for alpha in hyperparam_grid['alpha']:
-                algo = LinUCBClassic(env.get_first_action_set(), env.M, env.N, env.S1, env.S2, alpha, info=alpha)
+                algo = LinUCBLangford(env.get_first_action_set(), env.M, env.N, env.S1, env.S2, alpha, info=alpha)
                 algo_list.append(algo)
         else:
             delta = hyperparam_grid['delta']
@@ -48,7 +48,7 @@ def multi_trial_avg_performance(algo_names, hyperparam_grid, env, num_trials):
                 m = tot_regret[k]
                 k_m = k
         arr = k_m.split('_')
-        if algo_name == 'LinUCBClassic':
+        if algo_name == 'LinUCBLangford':
             best_hyperparam_dict[algo_name] = {'alpha': float(arr[1])}
         else:
             best_hyperparam_dict[algo_name] = {'lambda': float(arr[1]), 'gamma': float(arr[2])}
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', '--loadpath', type=str, required=True)
     args = parser.parse_args()
-    algo_names = ['LinUCBClassic', 'HyLinUCB', 'HyLinUCBv2']
+    algo_names = ['LinUCBLangford', 'HyLinUCB', 'HyLinUCBv2']
     hyper_param_grid = {'delta': 0.001, 'alpha': [0.0005, 0.001],\
                         'lambda': [0.0005, 0.001], \
                         'gamma': [0.0005, 0.001]}

@@ -61,6 +61,7 @@ class HyLinUCB(Algorithm):
             reward = self.get_reward_estimate(i)
             if reward > max_reward:
                 self.a_t = i
+                max_reward = reward
         return self.a_t
     
     def update(self, reward, regret, arm_set):
@@ -79,13 +80,13 @@ class HyLinUCB(Algorithm):
                     np.dot(self.B_arr[self.a_t] @ np.linalg.inv(self.W_arr[self.a_t]), self.v_arr[self.a_t]).reshape(-1)
         self.theta_hat = np.dot(np.linalg.inv(self.V_tilde), \
                         self.u)
-        self.beta_hat_arr[self.a_t] = np.dot(np.linalg.inv(self.W_arr[self.a_t]), \
-                                         self.v_arr[self.a_t] - \
-                                         np.dot(self.B_arr[self.a_t].T, self.theta_hat))
-        # for i in range(self.L):
-        #     self.beta_hat_arr[i] = np.dot(np.linalg.inv(self.W_arr[i]), \
-        #                                 self.v_arr[i] - \
-        #                                 np.dot(self.B_arr[i].T, self.theta_hat))
+        # self.beta_hat_arr[self.a_t] = np.dot(np.linalg.inv(self.W_arr[self.a_t]), \
+        #                                  self.v_arr[self.a_t] - \
+        #                                  np.dot(self.B_arr[self.a_t].T, self.theta_hat))
+        for i in range(self.L):
+            self.beta_hat_arr[i] = np.dot(np.linalg.inv(self.W_arr[i]), \
+                                        self.v_arr[i] - \
+                                        np.dot(self.B_arr[i].T, self.theta_hat))
         super().update(reward, regret, arm_set)
         self.t += 1
 
