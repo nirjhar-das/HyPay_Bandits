@@ -7,7 +7,7 @@ class LinUCB(Algorithm):
     def __init__(self, arms, delta, M, N, S1, S2, sigma, lmbda, info=None):
         super().__init__(f'LinUCB_{info}' if info is not None else 'LinUCB', arms)
         self.M = np.sqrt(M*M + N*N)
-        self.S = np.sqrt(S1*S1 + self.k*S2*S2)
+        self.S = np.sqrt(S1*S1 + S2*S2)
         self.lmbda = lmbda
         self.delta = delta
         self.sigma = sigma
@@ -30,7 +30,7 @@ class LinUCB(Algorithm):
     def conf_radius(self):
         p = self.S * np.sqrt(self.lmbda) +\
             self.sigma*np.sqrt(2*np.log(1/self.delta) + \
-                    (self.d + self.k*self.L) * np.log(1 + (self.t*self.M*self.M)/(self.lmbda * (self.d + self.k*self.L))))
+                    (self.d + self.k) * np.log(1 + (self.t*self.M*self.M)/(self.lmbda * (self.d + self.k))))
         return p
     
     def get_reward_estimate(self, i, a=None):

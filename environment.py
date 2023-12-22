@@ -25,8 +25,6 @@ class HybridBandits:
             self.T = config['horizon_length']
             self.t = 0
             self.context_seq = self.rng.integers(self.num_context, size=self.T)
-            #self.context_seq = self.rng.integers(5, size=self.T)
-            #self.context_seq = np.ones((self.T+1,), dtype=int)
             self.best_arm, self.max_reward = self.get_best_arm()
         else:
             with open(load, 'r') as f:
@@ -57,7 +55,6 @@ class HybridBandits:
         x, z = self.M*self.parameters['theta']/np.linalg.norm(self.parameters['theta']),\
                                 self.N*self.parameters['beta'][best_arm]/np.linalg.norm(self.parameters['beta'][best_arm])
         best_reward = np.dot(x, self.parameters['theta']) + np.dot(z, self.parameters['beta'][best_arm])
-        #print(f'Best Reward={best_reward}')
         if easy:
             while(i < self.L):
                 if i == best_arm:
@@ -66,20 +63,19 @@ class HybridBandits:
                 else:
                     x_proxy = self.rng.standard_normal(size=self.d + 1)
                     z_proxy = self.rng.standard_normal(size=self.k + 1)
-                    x_i = self.N * x_proxy[:-1] / np.linalg.norm(x_proxy)
-                    z_i = self.M * z_proxy[:-1] / np.linalg.norm(z_proxy)
+                    x_i = self.M * x_proxy[:-1] / np.linalg.norm(x_proxy)
+                    z_i = self.N * z_proxy[:-1] / np.linalg.norm(z_proxy)
                     reward = np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i])
                     if (reward > 1e-5) and \
                         (reward < (1 - 0.5)*best_reward):
-                        #print(f'Reward of arm {i}={reward}')
                         arms.append((x_i, z_i))
                         i += 1
         else:
             while(i < self.L):
                 x_proxy = self.rng.standard_normal(size=self.d + 1)
                 z_proxy = self.rng.standard_normal(size=self.k + 1)
-                x_i = self.N * x_proxy[:-1] / np.linalg.norm(x_proxy)
-                z_i = self.M * z_proxy[:-1] / np.linalg.norm(z_proxy)
+                x_i = self.M * x_proxy[:-1] / np.linalg.norm(x_proxy)
+                z_i = self.N * z_proxy[:-1] / np.linalg.norm(z_proxy)
                 if np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i]) > 1e-5:
                     arms.append((x_i, z_i))
                     i += 1
