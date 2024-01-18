@@ -1,4 +1,4 @@
-from .algorithm import Algorithm
+from ..algorithm import Algorithm
 import numpy as np
 import pandas as pd
 
@@ -63,7 +63,4 @@ class DisLinUCB(Algorithm):
         super().update(reward, regret, arm_set)
         self.modify_arms()
         self.t += 1
-
-    def save_results(self):
-        df = pd.DataFrame(data = {'reward': self.rewards, 'regret': self.regrets})
-        df.to_csv(f'{self.name}_Result.csv', index=False)
+        self.t_i_arr[self.a_t] += 1

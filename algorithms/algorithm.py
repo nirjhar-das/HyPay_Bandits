@@ -1,3 +1,5 @@
+import pandas as pd
+
 class Algorithm:
     def __init__(self, name, arms):
         self.name = name
@@ -15,3 +17,7 @@ class Algorithm:
         self.rewards.append(reward)
         self.regrets.append(regret)
         self.arms = arm_set
+    
+    def save_results(self):
+        df = pd.DataFrame(data = {'reward': self.rewards, 'regret': self.regrets})
+        df.to_csv(f'{self.name}_Result.csv', index=False)

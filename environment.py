@@ -19,12 +19,15 @@ class HybridBandits:
             self.M = config['x_norm']
             self.N = config['z_norm']
             self.sigma = config['subgaussian']
-            self.easy = config['is_easy']
+            self.desc = config['arm_desc']
             self.num_context = config['num_context']
-            self.arms = [self.create_arms(easy=self.easy) for _ in range(self.num_context)]
+            self.arms = [self.create_arms(desc=self.desc) for _ in range(self.num_context)]
+            if self.model_type == 'Logistic':
+                self.kappa = self.calculate_kappa()
             self.T = config['horizon_length']
             self.t = 0
             self.context_seq = self.rng.integers(self.num_context, size=self.T)
+            #self.context_seq = np.arange(self.T)
             self.best_arm, self.max_reward = self.get_best_arm()
         else:
             with open(load, 'r') as f:
@@ -48,14 +51,14 @@ class HybridBandits:
             params['beta'].append(self.S2 * beta_i_proxy[:-1] / np.linalg.norm(beta_i_proxy))
         return params
     
-    def create_arms(self, easy=False):
+    def create_arms(self, desc=None):
         arms = []
         i = 0
         best_arm = self.rng.integers(self.L)
         x, z = self.M*self.parameters['theta']/np.linalg.norm(self.parameters['theta']),\
                                 self.N*self.parameters['beta'][best_arm]/np.linalg.norm(self.parameters['beta'][best_arm])
         best_reward = np.dot(x, self.parameters['theta']) + np.dot(z, self.parameters['beta'][best_arm])
-        if easy:
+        if desc == 'easy':
             while(i < self.L):
                 if i == best_arm:
                     arms.append((x,z))
@@ -70,7 +73,7 @@ class HybridBandits:
                         (reward < (1 - 0.5)*best_reward):
                         arms.append((x_i, z_i))
                         i += 1
-        else:
+        elif desc is None:
             while(i < self.L):
                 x_proxy = self.rng.standard_normal(size=self.d + 1)
                 z_proxy = self.rng.standard_normal(size=self.k + 1)
@@ -79,7 +82,29 @@ class HybridBandits:
                 if np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i]) > 1e-5:
                     arms.append((x_i, z_i))
                     i += 1
+        elif desc == 'proportional':
+            if self.d != self.k:
+                raise ValueError(f'd and k must be same! Found d = {self.d} and k = {self.k}')
+            prop = 0.3
+            while(i < self.L):
+                x_proxy = self.rng.standard_normal(size=self.d + 1)
+                x_i = self.M * x_proxy[:-1] / np.linalg.norm(x_proxy)
+                z_i = prop * x_i
+                if np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i]) > 1e-5:
+                    arms.append((x_i, z_i))
+                    i += 1
         return arms
+    
+    def calculate_kappa(self):
+        min_mu_dot = np.inf
+        for arm_set in self.arms:
+            for i, (x,z) in enumerate(arm_set):
+                mu_val = 1.0/(1.0 + np.exp(-np.dot(x, self.parameters['theta']) \
+                                           - np.dot(z, self.parameters['beta'][i])))
+                mu_dot = mu_val * (1.0 - mu_val)
+                if mu_dot < min_mu_dot:
+                    min_mu_dot = mu_dot
+        return 1.0/min_mu_dot
     
     def get_best_arm(self):
         max_reward = [- np.inf for _ in range(self.num_context)]
