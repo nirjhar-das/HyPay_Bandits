@@ -69,17 +69,26 @@ class HybridBandits:
                     x_i = self.M * x_proxy[:-1] / np.linalg.norm(x_proxy)
                     z_i = self.N * z_proxy[:-1] / np.linalg.norm(z_proxy)
                     reward = np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i])
-                    if (reward > 1e-5) and \
-                        (reward < (1 - 0.5)*best_reward):
-                        arms.append((x_i, z_i))
-                        i += 1
+                    if self.model_type == 'Linear':
+                        if (reward > 1e-5) and \
+                            (reward < (1 - 0.5)*best_reward):
+                            arms.append((x_i, z_i))
+                            i += 1
+                    else:
+                        if (reward < 1e-3*best_reward):
+                            arms.append((x_i, z_i))
+                            i += 1
         elif desc is None:
             while(i < self.L):
                 x_proxy = self.rng.standard_normal(size=self.d + 1)
                 z_proxy = self.rng.standard_normal(size=self.k + 1)
                 x_i = self.M * x_proxy[:-1] / np.linalg.norm(x_proxy)
                 z_i = self.N * z_proxy[:-1] / np.linalg.norm(z_proxy)
-                if np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i]) > 1e-5:
+                if self.model_type == 'Linear':
+                    if np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i]) > 1e-5:
+                        arms.append((x_i, z_i))
+                        i += 1
+                else:
                     arms.append((x_i, z_i))
                     i += 1
         elif desc == 'proportional':
@@ -90,7 +99,11 @@ class HybridBandits:
                 x_proxy = self.rng.standard_normal(size=self.d + 1)
                 x_i = self.M * x_proxy[:-1] / np.linalg.norm(x_proxy)
                 z_i = prop * x_i
-                if np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i]) > 1e-5:
+                if self.model_type == 'Linear':
+                    if np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i]) > 1e-5:
+                        arms.append((x_i, z_i))
+                        i += 1
+                else:
                     arms.append((x_i, z_i))
                     i += 1
         return arms
