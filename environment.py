@@ -19,15 +19,12 @@ class HybridBandits:
             self.M = config['x_norm']
             self.N = config['z_norm']
             self.sigma = config['subgaussian']
-            self.desc = config['arm_desc']
-            self.num_context = config['num_context']
-            self.arms = [self.create_arms(desc=self.desc) for _ in range(self.num_context)]
+            self.T = config['horizon_length']
+            self.num_context = self.T
+            self.arms = [self.create_arms() for _ in range(self.T)]
             if self.model_type == 'Logistic':
                 self.kappa = self.calculate_kappa()
-            self.T = config['horizon_length']
             self.t = 0
-            self.context_seq = self.rng.integers(self.num_context, size=self.T)
-            #self.context_seq = np.arange(self.T)
             self.best_arm, self.max_reward = self.get_best_arm()
         else:
             with open(load, 'r') as f:
@@ -43,69 +40,59 @@ class HybridBandits:
     
     def create_parameters(self):
         params = {}
-        theta_proxy = self.rng.standard_normal(size=self.d)
-        params['theta'] = self.S1 * theta_proxy / np.linalg.norm(theta_proxy)
+        theta_proxy = self.rng.uniform(-1, 1, size=self.d)
+        params['theta'] = self.S1 * self.rng.uniform(0, 1) * theta_proxy / np.linalg.norm(theta_proxy)
         params['beta'] = []
         for i in range(self.L):
-            beta_i_proxy = self.rng.standard_normal(size=self.k+1)
-            params['beta'].append(self.S2 * beta_i_proxy[:-1] / np.linalg.norm(beta_i_proxy))
+            beta_i_proxy = self.rng.uniform(-1, 1, size=self.k)
+            params['beta'].append(self.S2 * self.rng.uniform(0, 1) * beta_i_proxy / np.linalg.norm(beta_i_proxy))
         return params
     
-    def create_arms(self, desc=None):
+    def create_arms(self):
         arms = []
         i = 0
-        best_arm = self.rng.integers(self.L)
-        x, z = self.M*self.parameters['theta']/np.linalg.norm(self.parameters['theta']),\
-                                self.N*self.parameters['beta'][best_arm]/np.linalg.norm(self.parameters['beta'][best_arm])
-        best_reward = np.dot(x, self.parameters['theta']) + np.dot(z, self.parameters['beta'][best_arm])
-        if desc == 'easy':
-            while(i < self.L):
-                if i == best_arm:
-                    arms.append((x,z))
-                    i += 1
-                else:
-                    x_proxy = self.rng.standard_normal(size=self.d + 1)
-                    z_proxy = self.rng.standard_normal(size=self.k + 1)
-                    x_i = self.M * x_proxy[:-1] / np.linalg.norm(x_proxy)
-                    z_i = self.N * z_proxy[:-1] / np.linalg.norm(z_proxy)
-                    reward = np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i])
-                    if self.model_type == 'Linear':
-                        if (reward > 1e-5) and \
-                            (reward < (1 - 0.5)*best_reward):
-                            arms.append((x_i, z_i))
-                            i += 1
-                    else:
-                        if (reward < 1e-3*best_reward):
-                            arms.append((x_i, z_i))
-                            i += 1
-        elif desc is None:
-            while(i < self.L):
-                x_proxy = self.rng.standard_normal(size=self.d + 1)
-                z_proxy = self.rng.standard_normal(size=self.k + 1)
-                x_i = self.M * x_proxy[:-1] / np.linalg.norm(x_proxy)
-                z_i = self.N * z_proxy[:-1] / np.linalg.norm(z_proxy)
-                if self.model_type == 'Linear':
-                    if np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i]) > 1e-5:
-                        arms.append((x_i, z_i))
-                        i += 1
-                else:
-                    arms.append((x_i, z_i))
-                    i += 1
-        elif desc == 'proportional':
-            if self.d != self.k:
-                raise ValueError(f'd and k must be same! Found d = {self.d} and k = {self.k}')
-            prop = 0.3
-            while(i < self.L):
-                x_proxy = self.rng.standard_normal(size=self.d + 1)
-                x_i = self.M * x_proxy[:-1] / np.linalg.norm(x_proxy)
-                z_i = prop * x_i
-                if self.model_type == 'Linear':
-                    if np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i]) > 1e-5:
-                        arms.append((x_i, z_i))
-                        i += 1
-                else:
-                    arms.append((x_i, z_i))
-                    i += 1
+        #best_arm = self.rng.integers(self.L)
+        #x, z = self.M*self.parameters['theta']/np.linalg.norm(self.parameters['theta']),\
+        #                        self.N*self.parameters['beta'][best_arm]/np.linalg.norm(self.parameters['beta'][best_arm])
+        #best_reward = np.dot(x, self.parameters['theta']) + np.dot(z, self.parameters['beta'][best_arm])
+        #if desc == 'easy':
+        #    while(i < self.L):
+        #        if i == best_arm:
+        #            arms.append((x,z))
+        #            i += 1
+        #        else:
+        #            x_proxy = self.rng.uniform(size=self.d + 1)
+        #            z_proxy = self.rng.uniform(size=self.k + 1)
+        #            x_i = self.rng.uniform(0, self.M) * x_proxy / np.linalg.norm(x_proxy)
+        #            z_i = self.rng.uniform(0, self.N) * z_proxy / np.linalg.norm(z_proxy)
+        #            reward = np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i])
+        #            if self.model_type == 'Linear':
+        #                if (reward > 1e-5) and \
+        #                    (reward < (1 - 0.5)*best_reward):
+        #                    arms.append((x_i, z_i))
+        #                    i += 1
+        #            else:
+        #                if (reward < 1e-3*best_reward):
+        #                    arms.append((x_i, z_i))
+        #                    i += 1
+        #elif desc is None:
+        while(i < self.L):
+            x_proxy = self.rng.uniform(-1, 1, size=self.d)
+            z_proxy = self.rng.uniform(-1, 1, size=self.k)
+            x_i = self.rng.uniform(0, self.M) * x_proxy / np.linalg.norm(x_proxy)
+            z_i = self.rng.uniform(0, self.N) * z_proxy / np.linalg.norm(z_proxy)
+            arms.append((x_i, z_i))
+            i += 1
+        # elif desc == 'proportional':
+        #     if self.d != self.k:
+        #         raise ValueError(f'd and k must be same! Found d = {self.d} and k = {self.k}')
+        #     prop = 0.3
+        #     while(i < self.L):
+        #         x_proxy = self.rng.uniform(-1, 1, size=self.d)
+        #         x_i = self.rng.uniform(0, self.M) * x_proxy / np.linalg.norm(x_proxy)
+        #         z_i = prop * x_i
+        #         arms.append((x_i, z_i))
+        #             i += 1
         return arms
     
     def calculate_kappa(self):
@@ -136,31 +123,32 @@ class HybridBandits:
         return best_arm, max_reward
     
     def get_first_action_set(self):
-        return self.arms[self.context_seq[0]]
+        return self.arms[0]
 
     def get_max_reward(self):
-        return self.max_reward[self.context_seq[self.t % self.T]]
+        return self.max_reward[self.t]
 
 
     def step(self, action):
         if self.model_type == 'Linear':
             noise = self.rng.normal(scale=self.sigma)
-            rewards = [np.dot(self.parameters['theta'], self.arms[self.context_seq[self.t]][a][0]) + \
-                        np.dot(self.parameters['beta'][a], self.arms[self.context_seq[self.t]][a][1]) \
+            rewards = [np.dot(self.parameters['theta'], self.arms[self.t][a][0]) + \
+                        np.dot(self.parameters['beta'][a], self.arms[self.t][a][1]) \
                         for a in action]
             noisy_rewards = [reward + noise for reward in rewards]
-            regrets = [self.max_reward[self.context_seq[self.t]] - reward for reward in rewards]
+            regrets = [self.max_reward[self.t] - reward for reward in rewards]
             self.t += 1
-            return noisy_rewards, regrets, self.arms[self.context_seq[self.t % self.T]]
-        elif self.model_type == 'Logistic':
-            dot_products = [np.dot(self.parameters['theta'], self.arms[self.context_seq[self.t]][a][0]) + \
-                        np.dot(self.parameters['beta'][a], self.arms[self.context_seq[self.t]][a][1]) \
+            return noisy_rewards, regrets, self.arms[self.t % self.T]
+        else:
+            dot_products = [np.dot(self.parameters['theta'], self.arms[self.t][a][0]) + \
+                        np.dot(self.parameters['beta'][a], self.arms[self.t][a][1]) \
                         for a in action]
-            rewards = [1.0 / (1.0 + np.exp(- dot_product)) for dot_product in dot_products]
-            noisy_rewards = [float(self.rng.binomial(1, reward)) for reward in rewards]
-            regrets = [self.max_reward[self.context_seq[self.t]] - reward for reward in rewards]
-            self.t += 1
-            return noisy_rewards, regrets, self.arms[self.context_seq[self.t % self.T]]
+            if self.model_type == 'Logistic':
+                rewards = [1.0 / (1.0 + np.exp(- dot_product)) for dot_product in dot_products]
+                noisy_rewards = [float(self.rng.binomial(1, reward)) for reward in rewards]
+                regrets = [self.max_reward[self.t] - reward for reward in rewards]
+                self.t += 1
+                return noisy_rewards, regrets, self.arms[self.t % self.T]
     
     def reset(self):
         self.t = 0

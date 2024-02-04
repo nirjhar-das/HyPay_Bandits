@@ -5,11 +5,11 @@ import numpy as np
 import scipy as sc
 import cvxpy as cp
 
-class HyEcoLog(Algorithm):
+class MHyEcoLog(Algorithm):
     def __init__(self, arms, delta, M, N, S1, S2, lmbda, kappa, info=None):
-        super().__init__(f'HyEcoLog_{info}' if info is not None else 'HyEcoLog', arms)
+        super().__init__(f'MHyEcoLog_{info}' if info is not None else 'MHyEcoLog', arms)
         self.M = np.sqrt(M*M + N*N)
-        self.S = np.sqrt(S1*S1 + self.L*S2*S2)
+        self.S = np.sqrt(S1*S1 + S2*S2)
         self.lmbda = lmbda
         self.kappa = kappa
         self.delta = delta
@@ -34,7 +34,7 @@ class HyEcoLog(Algorithm):
         self.arms = ls
     
     def conf_radius(self):
-        lmbda_t = (self.d + self.L * self.k)*np.log((4.0 + (self.t+1)/4.0)/self.delta)
+        lmbda_t = (self.d + self.k)*np.log((4.0 + (self.t+1)/4.0)/self.delta)
         sqrt_gamma_t = (self.S + 1.5) * np.sqrt(lmbda_t)
         return sqrt_gamma_t
     

@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from algorithms import HyLinUCB, DisLinUCB, LinUCBLangford, HyLinUCBv2
+from algorithms.linear import MHyLinUCB, DisLinUCB, HyLinUCB, SupLinUCB, OFUL
 from environment import HybridBandits
 from plot_rewards import create_plot
 
@@ -28,20 +28,21 @@ def main(env, num_trials, delta, algo_dict, output_folder='.', normalize_regret=
     for i in range(num_trials):
         algo_arr = []
         for k in algo_dict.keys():
-            if k == 'HyLinUCB':
+            if k == 'DisLinUCB':
                 lmbda = algo_dict[k]['lambda']
-                gamma = algo_dict[k]['gamma']
-                algo_arr.append(HyLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, lmbda, gamma))
-            elif k == 'DisLinUCB':
+                algo_arr.append(DisLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda))
+            elif k == 'HyLinUCB':
                 lmbda = algo_dict[k]['lambda']
-                algo_arr.append(DisLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, lmbda))
-            elif k == 'LinUCBLangford':
-                alpha = algo_dict[k]['alpha']
-                algo_arr.append(LinUCBLangford(env.get_first_action_set(), env.M, env.N, env.S1, env.S2, alpha))
-            elif k == 'HyLinUCBv2':
+                algo_arr.append(HyLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda))
+            elif k == 'OFUL':
                 lmbda = algo_dict[k]['lambda']
-                gamma = algo_dict[k]['gamma']
-                algo_arr.append(HyLinUCBv2(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, lmbda, gamma))
+                algo_arr.append(OFUL(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda))
+            elif k == 'MHyLinUCB':
+                lmbda = algo_dict[k]['lambda']
+                algo_arr.append(MHyLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda))
+            elif k == 'SupLinUCB':
+                lmbda = algo_dict[k]['lambda']
+                algo_arr.append(SupLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda, T))
         print('Simulating Trial', i+1)
         m = simulate(env, algo_arr, T)
         env.reset()
@@ -80,7 +81,6 @@ if __name__ == '__main__':
     if args.loadpath is None:
         config = {}
         config['seed'] = np.random.randint(1098321)
-        print('Seed:', config['seed'])
         config['model_type'] = 'Linear'
         config['horizon_length'] = 50000
         config['num_labels'] = 20
@@ -108,6 +108,6 @@ if __name__ == '__main__':
         out_folder = args.output
         if not os.path.exists(out_folder):
             os.mkdir(out_folder)
-    main(env, num_trials=args.ntrials, delta=0.001, alpha=0.1, lmbda=0.1, gamma=0.1, output_folder=out_folder)
+    main(env, num_trials=args.ntrials, delta=0.001, output_folder=out_folder)
 
     

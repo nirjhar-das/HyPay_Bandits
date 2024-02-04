@@ -2,28 +2,36 @@ from ..algorithm import Algorithm
 import numpy as np
 import pandas as pd
 
-class LinUCBLangford(Algorithm):
-    def __init__(self, arms, M, N, S1, S2, alpha, info=None):
-        super().__init__(f'LinUCBLangford_{info}' if info is not None else 'LinUCBLangford', arms)
+class HyLinUCB_Offline(Algorithm):
+    def __init__(self, d, k, L, delta, M, N, S1, S2, sigma, lmbda, info=None):
+        super().__init__(f'HyLinUCB_{info}' if info is not None else 'HyLinUCB', d=d, k=k, L=L)
         self.M = M
         self.N = N
-        self.S1 = S1
-        self.S2 = S2
-        self.alpha = alpha
-        self.theta_hat = np.zeros_like(self.arms[0][0])
+        self.M = np.sqrt(M*M + N*N)
+        self.S = np.sqrt(S1*S1 + self.L*S2*S2)
+        self.lmbda = lmbda
+        self.delta = delta
+        self.sigma = sigma
+        self.theta_hat = np.zeros((self.d,))
         self.beta_hat_arr = []
         self.W_arr = []
         self.B_arr = []
         self.v_arr = []
         for i in range(self.L):
-            self.beta_hat_arr.append(np.zeros_like(self.arms[0][1]))
+            self.beta_hat_arr.append(np.zeros((self.k,)))
             self.W_arr.append(np.eye(self.k))
             self.B_arr.append(np.zeros((self.d, self.k)))
-            self.v_arr.append(np.zeros_like(self.arms[0][1]))
-        self.u = np.zeros_like(self.arms[0][0])
+            self.v_arr.append(np.zeros((self.k,)))
+        self.u = np.zeros((self.d,))
         self.V_tilde = np.eye(self.d)
         self.t = 0
         self.a_t = 0
+
+    def conf_radius(self):
+        p = self.S * np.sqrt(self.lmbda) +\
+            self.sigma*np.sqrt(2*np.log(1/self.delta) + \
+                    (self.d + self.L * self.k) * np.log(1 + (self.t*self.M*self.M)/(self.lmbda * (self.d + self.L * self.k))))
+        return p
     
     def ucb_bonus(self, i, a=None):
         if a is None:
@@ -34,7 +42,7 @@ class LinUCBLangford(Algorithm):
                 2*np.dot(a[0], np.dot(V_inv @ self.B_arr[i] @ W_inv, a[1])) +\
                 np.dot(a[1], np.dot(W_inv, a[1])) +\
                 np.dot(a[1], np.dot(W_inv @ self.B_arr[i].T @ V_inv @ self.B_arr[i] @ W_inv, a[1]))
-        return self.alpha * np.sqrt(s_i)
+        return self.conf_radius() * np.sqrt(s_i)
     
     
     def get_reward_estimate(self, i, a=None):
@@ -45,7 +53,8 @@ class LinUCBLangford(Algorithm):
                     self.ucb_bonus(i, a)
         return reward
 
-    def next_action(self):
+    def predict(self, arms):
+        self.arms = arms
         max_reward = self.get_reward_estimate(0)
         self.a_t = 0
         for i in range(1, self.L):
@@ -55,7 +64,8 @@ class LinUCBLangford(Algorithm):
                 max_reward = reward
         return self.a_t
     
-    def update(self, reward, regret, arm_set):
+    def update(self, arms, reward):
+        self.arms = arms
         x_t_vec = self.arms[self.a_t][0].reshape(-1, 1)
         z_t_vec = self.arms[self.a_t][1].reshape(-1, 1)
         self.u += np.dot(self.B_arr[self.a_t] @ np.linalg.inv(self.W_arr[self.a_t]), \
@@ -74,5 +84,5 @@ class LinUCBLangford(Algorithm):
             self.beta_hat_arr[i] = np.dot(np.linalg.inv(self.W_arr[i]), \
                                         self.v_arr[i] - \
                                         np.dot(self.B_arr[i].T, self.theta_hat))
-        super().update(reward, regret, arm_set)
+        super().update(reward)
         self.t += 1
