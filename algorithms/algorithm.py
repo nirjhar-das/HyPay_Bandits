@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 
 class Algorithm:
     def __init__(self, name, arms=None, d=None, k=None, L=None):
@@ -25,6 +26,9 @@ class Algorithm:
         if arm_set is not None:
             self.arms = arm_set
     
-    def save_results(self):
-        df = pd.DataFrame(data = {'reward': self.rewards, 'regret': self.regrets})
-        df.to_csv(f'{self.name}_Result.csv', index=False)
+    def save_results(self, info, folder):
+        if len(self.regrets) > 0:
+            df = pd.DataFrame(data = {'reward': self.rewards, 'regret': self.regrets})
+        else:
+            df = pd.DataFrame(data = {'reward': self.rewards})
+        df.to_csv(os.path.join(folder,  f'{info}_{self.name}_Result.csv'), index=False)
