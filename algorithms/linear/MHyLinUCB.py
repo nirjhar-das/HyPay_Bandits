@@ -24,6 +24,7 @@ class MHyLinUCB(Algorithm):
             self.t_i_arr.append(0)
         self.u = np.zeros_like(self.arms[0][0])
         self.V_tilde = self.lmbda * np.eye(self.d)
+        self.V_inv = (1.0 / self.lmbda) * np.eye(self.d)
         self.t = 0
         self.a_t = 0
     
@@ -39,7 +40,7 @@ class MHyLinUCB(Algorithm):
             a = self.arms[i]
         reward = np.dot(a[0], self.theta_hat) +\
                     np.dot(a[1], self.beta_hat_arr[i]) +\
-                    self.conf_radius() * (np.sqrt(np.dot(a[0], np.dot(np.linalg.inv(self.V_tilde), a[0]))) +\
+                    self.conf_radius() * (np.sqrt(np.dot(a[0], np.dot(self.V_inv, a[0]))) +\
                                             np.sqrt(np.dot(a[1], np.dot(np.linalg.inv(self.W_arr[i]), a[1]))))
         return reward
 
@@ -69,9 +70,8 @@ class MHyLinUCB(Algorithm):
                     np.dot(self.B_arr[self.a_t] @ np.linalg.inv(self.W_arr[self.a_t]), self.v_arr[self.a_t]).reshape(-1)
         self.theta_hat = np.dot(np.linalg.inv(self.V_tilde), \
                         self.u)
-        # self.beta_hat_arr[self.a_t] = np.dot(np.linalg.inv(self.W_arr[self.a_t]), \
-        #                                  self.v_arr[self.a_t] - \
-        #                                  np.dot(self.B_arr[self.a_t].T, self.theta_hat))
+        x_V_inv = np.dot(self.V_inv, self.arms[self.a_t][0])
+        self.V_inv -= np.outer(x_V_inv, x_V_inv) / (1.0 + np.dot(self.a_t[0], x_V_inv))
         for i in range(self.L):
             self.beta_hat_arr[i] = np.dot(np.linalg.inv(self.W_arr[i]), \
                                         self.v_arr[i] - \

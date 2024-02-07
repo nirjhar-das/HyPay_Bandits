@@ -4,7 +4,7 @@ import pandas as pd
 
 class HyLinUCB_Offline(Algorithm):
     def __init__(self, d, k, L, delta, M, N, S1, S2, sigma, lmbda, info=None):
-        super().__init__(f'HyLinUCB_{info}' if info is not None else 'HyLinUCB', d=d, k=k, L=L)
+        super().__init__(f'HyLinUCB_{info}' if info is not None else 'LinUCB', d=d, k=k, L=L)
         self.M = M
         self.N = N
         self.M = np.sqrt(M*M + N*N)

@@ -9,7 +9,7 @@ def main(folder):
     fig, ax = plt.subplots(1, 1)
     L, k, num_trials = 0, 0, 0
     x = []
-    R = {'HyLinUCB': [], 'DisLinUCB': []}
+    R = {'LinUCB': [], 'DisLinUCB': []}
     for root, dirs, files in os.walk(folder):
         for dir in dirs:
             dim = dir.split('_')[-1]
@@ -32,9 +32,9 @@ def main(folder):
     idx = np.argsort(x)
     x = [x[i] for i in idx]
     R['DisLinUCB'] = [R['DisLinUCB'][i] for i in idx]
-    R['HyLinUCB']  = [R['HyLinUCB'][i] for i in idx]
+    R['LinUCB']  = [R['LinUCB'][i] for i in idx]
     ax.plot(x, R['DisLinUCB'], label='DisLinUCB')
-    ax.plot(x, R['HyLinUCB'], label='HyLinUCB')
+    ax.plot(x, R['LinUCB'], label='LinUCB')
     ax.grid()
     ax.legend()
     ax.set_xlabel(f'Theta dimension for L = {L} and beta_dim = {k}')

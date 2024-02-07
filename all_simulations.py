@@ -6,7 +6,7 @@ from copy import deepcopy
 from tqdm import tqdm
 
 from environment import HybridBandits
-from algorithms.linear import DisLinUCB, HyLinUCB, OFUL, MHyLinUCB, SupLinUCB
+from algorithms.linear import DisLinUCB, LinUCB, OFUL, MHyLinUCB, SupLinUCB, HyLinUCB
 from algorithms.logistic import HyEcoLog, DisEcoLog
 
 def simulate_linear(env, algo_arr, T):
@@ -39,12 +39,15 @@ def multi_simulation_linear(num_trials, algo_dict, env:HybridBandits, delta:floa
             if k == 'DisLinUCB':
                 lmbda = algo_dict[k]['lambda']
                 algo_arr.append(DisLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda))
-            elif k == 'HyLinUCB':
+            elif k == 'LinUCB':
                 lmbda = algo_dict[k]['lambda']
-                algo_arr.append(HyLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda))
+                algo_arr.append(LinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda))
             elif k == 'OFUL':
                 lmbda = algo_dict[k]['lambda']
                 algo_arr.append(OFUL(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda))
+            elif k == 'HyLinUCB':
+                lmbda = algo_dict[k]['lambda']
+                algo_arr.append(HyLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda))
             elif k == 'MHyLinUCB':
                 lmbda = algo_dict[k]['lambda']
                 algo_arr.append(MHyLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda))
@@ -103,9 +106,15 @@ def all_simulations(d, k, L, T, model_type, num_trials, num_envs, seed=194821263
         env_name = 'Testbench'                 # Name of the simulation
         env = HybridBandits(env_name, config)
         if model_type ==  'Linear':
-            algo_dict = {'MHyLinUCB': {'lambda': 0.01},
-                        'HyLinUCB': {'lambda': 0.01},
-                        'DisLinUCB': {'lambda': 0.01}}
+            if d == 100 and k == 10 and L == 25:
+                algo_dict = {'MHyLinUCB': {'lambda': 0.01},
+                        'LinUCB': {'lambda': 0.01},
+                        'DisLinUCB': {'lambda': 0.01},
+                        'SupLinUCB': {'lambda': 0.01}}
+            else:
+                algo_dict = {'MHyLinUCB': {'lambda': 0.01},
+                            'LinUCB': {'lambda': 0.01},
+                            'DisLinUCB': {'lambda': 0.01}}
             rewards, regrets = multi_simulation_linear(num_trials, algo_dict, env, delta, T)
         elif model_type == 'Logistic':
             algo_dict = {'HyEcoLog': {'lambda': 1.0},
@@ -125,7 +134,7 @@ def all_simulations(d, k, L, T, model_type, num_trials, num_envs, seed=194821263
         all_regrets[j] /= (num_envs * num_trials)
     
     result_dict = {c : all_regrets[s] for s, c in enumerate(algo_dict.keys())}
-    filename = f'{env_name}_{d}_{k}_{L}_{T}_{model_type}'
+    filename = f'{env_name}_{d}_{k}_{L}_{T}_{model_type}.csv'
     df = pd.DataFrame(data=result_dict)
     df.to_csv(os.path.join('Results', filename), index=False)
 
@@ -134,19 +143,19 @@ if __name__=='__main__':
     parser.add_argument('--model_type', '-m', type=str, required=True, help='Model Type')
     args = parser.parse_args()
     if args.model_type == 'Linear':
-        d_arr = [10, 100]
+        d_arr = [100, 10]
         k_arr  = [10, 100]
-        L_arr = [25] + [2**i for i in range(1, 11)]
-        T = 5000
+        L_arr = [25] + [2**i for i in range(1, 10)]
+        T = 10000
         for L in L_arr:
             for  d in d_arr:
                 for  k in k_arr:
                     if(d == 10 and k == 100 and L == 25):
-                        all_simulations(d, k, L, T, 'Linear', 5, 5)
+                        all_simulations(d, k, L, T, 'Linear', 3, 5)
                     elif(d == 100 and k == 10 and L == 25):
-                        all_simulations(d, k, L, T, 'Linear', 5, 5)
+                        all_simulations(d, k, L, T, 'Linear', 3, 5)
                     elif(d == 10 and k == 10 and L != 25):
-                        all_simulations(d, k, L, T, 'Linear', 5, 5)
+                        all_simulations(d, k, L, T, 'Linear', 3, 5)
     elif args.model_type == 'Logistic':
         T = 2000
         d_arr = [0, 3, 10, 16]

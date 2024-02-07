@@ -155,7 +155,7 @@ def prepare_algo_arr(algo_dict, T, d, k, L, delta=0.001):
         if key == 'DisLinUCB':
             lmbda = algo_dict[key]['lambda']
             algo_arr.append(DisLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.25, lmbda))
-        elif key == 'HyLinUCB':
+        elif key == 'LinUCB':
             lmbda = algo_dict[key]['lambda']
             algo_arr.append(HyLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.25, lmbda))
         elif key == 'OFUL':
@@ -197,7 +197,7 @@ def main(name, zipfolder, num_arms, timesteps, model, output):
             d, k, L = 36, 6, int(num_arms)
         if model ==  'Linear':
             algo_dict = {'MHyLinUCB': {'lambda': 0.01},
-                        'HyLinUCB': {'lambda': 0.01},
+                        'LinUCB': {'lambda': 0.01},
                         'DisLinUCB': {'lambda': 0.01}}
         algo_arr = prepare_algo_arr(algo_dict, timesteps, d, k, L, delta=0.001)
         pool = Pool(processes=3)
