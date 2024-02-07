@@ -71,7 +71,7 @@ class MHyLinUCB(Algorithm):
         self.theta_hat = np.dot(np.linalg.inv(self.V_tilde), \
                         self.u)
         x_V_inv = np.dot(self.V_inv, self.arms[self.a_t][0])
-        self.V_inv -= np.outer(x_V_inv, x_V_inv) / (1.0 + np.dot(self.a_t[0], x_V_inv))
+        self.V_inv -= np.outer(x_V_inv, x_V_inv) / (1.0 + np.dot(self.arms[self.a_t][0], x_V_inv))
         for i in range(self.L):
             self.beta_hat_arr[i] = np.dot(np.linalg.inv(self.W_arr[i]), \
                                         self.v_arr[i] - \
