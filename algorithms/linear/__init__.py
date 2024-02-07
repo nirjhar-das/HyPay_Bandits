@@ -6,5 +6,5 @@ from .OFUL import OFUL
 from .SupLinUCB import SupLinUCB
 from .DisLinUCB_Offline import DisLinUCB_Offline
 from .OFUL_Offline import OFUL_Offline
-from .LinUCB_Offline import HyLinUCB_Offline
+from .HyLinUCB_Offline import HyLinUCB_Offline
 from .MHyLinUCB_Offline import MHyLinUCB_Offline
