@@ -107,12 +107,14 @@ def all_simulations(d, k, L, T, model_type, num_trials, num_envs, seed=194821263
         env = HybridBandits(env_name, config)
         if model_type ==  'Linear':
             if d == 100 and k == 10 and L == 25:
-                algo_dict = {'MHyLinUCB': {'lambda': 0.01},
+                algo_dict = {'HyLinUCB': {'lambda': 0.01},
+                        'MHyLinUCB': {'lambda': 0.01},
                         'LinUCB': {'lambda': 0.01},
                         'DisLinUCB': {'lambda': 0.01},
                         'SupLinUCB': {'lambda': 0.01}}
             else:
-                algo_dict = {'MHyLinUCB': {'lambda': 0.01},
+                algo_dict = {'HyLinUCB': {'lambda': 0.01},
+                             'MHyLinUCB': {'lambda': 0.01},
                             'LinUCB': {'lambda': 0.01},
                             'DisLinUCB': {'lambda': 0.01}}
             rewards, regrets = multi_simulation_linear(num_trials, algo_dict, env, delta, T)
@@ -145,7 +147,7 @@ if __name__=='__main__':
     if args.model_type == 'Linear':
         d_arr = [100, 10]
         k_arr  = [10, 100]
-        L_arr = [25] + [2**i for i in range(1, 10)]
+        L_arr = [25] + [2**i for i in range(1, 11)]
         T = 10000
         for L in L_arr:
             for  d in d_arr:
