@@ -2,11 +2,13 @@ from ..algorithm import Algorithm
 import numpy as np
 import pandas as pd
 
-class MHyLinUCB_Offline(Algorithm):
+class LinUCB_Offline(Algorithm):
     def __init__(self, d, k, L, delta, M, N, S1, S2, sigma, lmbda, info=None):
-        super().__init__(f'MHyLinUCB_{info}' if info is not None else 'MHyLinUCB', d=d, k=k, L=L)
+        super().__init__(f'LinUCB_{info}' if info is not None else 'LinUCB', d=d, k=k, L=L)
+        self.M = M
+        self.N = N
         self.M = np.sqrt(M*M + N*N)
-        self.S = np.sqrt(S1*S1 + S2*S2)
+        self.S = np.sqrt(S1*S1 + self.L*S2*S2)
         self.lmbda = lmbda
         self.delta = delta
         self.sigma = sigma
@@ -15,24 +17,32 @@ class MHyLinUCB_Offline(Algorithm):
         self.W_arr = []
         self.B_arr = []
         self.v_arr = []
-        self.t_i_arr = []
-        for _ in range(self.L):
+        for i in range(self.L):
             self.beta_hat_arr.append(np.zeros((self.k,)))
-            self.W_arr.append(self.lmbda * np.eye(self.k))
+            self.W_arr.append(np.eye(self.k))
             self.B_arr.append(np.zeros((self.d, self.k)))
             self.v_arr.append(np.zeros((self.k,)))
-            self.t_i_arr.append(0)
         self.u = np.zeros((self.d,))
-        self.V_tilde = self.lmbda * np.eye(self.d)
-        self.V = self.lmbda * np.eye(self.d)
+        self.V_tilde = np.eye(self.d)
         self.t = 0
         self.a_t = 0
-    
+
     def conf_radius(self):
         p = self.S * np.sqrt(self.lmbda) +\
             self.sigma*np.sqrt(2*np.log(1/self.delta) + \
-                    (self.d + self.k) * np.log(1 + (self.t*self.M*self.M)/(self.lmbda * (self.d + self.k))))
+                    (self.d + self.L * self.k) * np.log(1 + (self.t*self.M*self.M)/(self.lmbda * (self.d + self.L * self.k))))
         return p
+    
+    def ucb_bonus(self, i, a=None):
+        if a is None:
+            a = self.arms[i]
+        V_inv = np.linalg.inv(self.V_tilde)
+        W_inv = np.linalg.inv(self.W_arr[i])
+        s_i = np.dot(a[0], np.dot(V_inv, a[0])) -\
+                2*np.dot(a[0], np.dot(V_inv @ self.B_arr[i] @ W_inv, a[1])) +\
+                np.dot(a[1], np.dot(W_inv, a[1])) +\
+                np.dot(a[1], np.dot(W_inv @ self.B_arr[i].T @ V_inv @ self.B_arr[i] @ W_inv, a[1]))
+        return self.conf_radius() * np.sqrt(s_i)
     
     
     def get_reward_estimate(self, i, a=None):
@@ -40,8 +50,7 @@ class MHyLinUCB_Offline(Algorithm):
             a = self.arms[i]
         reward = np.dot(a[0], self.theta_hat) +\
                     np.dot(a[1], self.beta_hat_arr[i]) +\
-                    self.conf_radius() * (np.sqrt(np.dot(a[0], np.dot(np.linalg.inv(self.V), a[0]))) +\
-                                            np.sqrt(np.dot(a[1], np.dot(np.linalg.inv(self.W_arr[i]), a[1]))))
+                    self.ucb_bonus(i, a)
         return reward
 
     def predict(self, arms):
@@ -70,9 +79,7 @@ class MHyLinUCB_Offline(Algorithm):
                          self.B_arr[self.a_t] @ np.linalg.inv(self.W_arr[self.a_t]) @ self.B_arr[self.a_t].T)
         self.u += reward * x_t_vec.reshape(-1) - \
                     np.dot(self.B_arr[self.a_t] @ np.linalg.inv(self.W_arr[self.a_t]), self.v_arr[self.a_t]).reshape(-1)
-        self.theta_hat = np.dot(np.linalg.inv(self.V_tilde), \
-                        self.u)
-        self.V += np.outer(x_t_vec, x_t_vec)
+        self.theta_hat = np.dot(np.linalg.inv(self.V_tilde), self.u)
         for i in range(self.L):
             self.beta_hat_arr[i] = np.dot(np.linalg.inv(self.W_arr[i]), \
                                         self.v_arr[i] - \

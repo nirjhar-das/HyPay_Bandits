@@ -55,7 +55,7 @@ class DisLinUCB_Offline(Algorithm):
                 max_reward = reward
         return self.a_t
     
-    def update(self, arms, reward):
+    def update(self, arms, reward, regret=None):
         self.arms = arms
         self.modify_arms()
         x_t_vec = self.arms[self.a_t].reshape(-1, 1)
@@ -63,6 +63,6 @@ class DisLinUCB_Offline(Algorithm):
         self.v_arr[self.a_t] += reward * self.arms[self.a_t]
         self.theta_hat_arr[self.a_t] = np.dot(np.linalg.inv(self.W_arr[self.a_t]), \
                                         self.v_arr[self.a_t])
-        super().update(reward)
+        super().update(reward, regret)
         self.t += 1
         self.t_i_arr[self.a_t] += 1

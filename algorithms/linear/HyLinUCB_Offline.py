@@ -4,11 +4,11 @@ import pandas as pd
 
 class HyLinUCB_Offline(Algorithm):
     def __init__(self, d, k, L, delta, M, N, S1, S2, sigma, lmbda, info=None):
-        super().__init__(f'HyLinUCB_{info}' if info is not None else 'LinUCB', d=d, k=k, L=L)
+        super().__init__(f'HyLinUCB_{info}' if info is not None else 'HyLinUCB', d=d, k=k, L=L)
         self.M = M
         self.N = N
         self.M = np.sqrt(M*M + N*N)
-        self.S = np.sqrt(S1*S1 + self.L*S2*S2)
+        self.S = np.sqrt(S1*S1 + S2*S2)
         self.lmbda = lmbda
         self.delta = delta
         self.sigma = sigma
@@ -30,7 +30,7 @@ class HyLinUCB_Offline(Algorithm):
     def conf_radius(self):
         p = self.S * np.sqrt(self.lmbda) +\
             self.sigma*np.sqrt(2*np.log(1/self.delta) + \
-                    (self.d + self.L * self.k) * np.log(1 + (self.t*self.M*self.M)/(self.lmbda * (self.d + self.L * self.k))))
+                    (self.d + self.k) * np.log(1 + (self.t*self.M*self.M)/(self.lmbda * (self.d + self.k))))
         return p
     
     def ucb_bonus(self, i, a=None):
@@ -64,7 +64,7 @@ class HyLinUCB_Offline(Algorithm):
                 max_reward = reward
         return self.a_t
     
-    def update(self, arms, reward):
+    def update(self, arms, reward, regret=None):
         self.arms = arms
         x_t_vec = self.arms[self.a_t][0].reshape(-1, 1)
         z_t_vec = self.arms[self.a_t][1].reshape(-1, 1)
@@ -84,5 +84,5 @@ class HyLinUCB_Offline(Algorithm):
             self.beta_hat_arr[i] = np.dot(np.linalg.inv(self.W_arr[i]), \
                                         self.v_arr[i] - \
                                         np.dot(self.B_arr[i].T, self.theta_hat))
-        super().update(reward)
+        super().update(reward, regret)
         self.t += 1

@@ -198,7 +198,8 @@ def main(name, zipfolder, num_arms, timesteps, model, output):
         if model ==  'Linear':
             algo_dict = {'MHyLinUCB': {'lambda': 0.01},
                         'LinUCB': {'lambda': 0.01},
-                        'DisLinUCB': {'lambda': 0.01}}
+                        'DisLinUCB': {'lambda': 0.01},
+                        'HyLinUCB': {'lambda': 0.01}}
         algo_arr = prepare_algo_arr(algo_dict, timesteps, d, k, L, delta=0.001)
         pool = Pool(processes=3)
         args = [(alg, OffEval(zipfolder, name, num_arms), timesteps, i+1, output, name)\

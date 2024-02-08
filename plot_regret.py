@@ -40,9 +40,14 @@ def plot_num_arms_vs_regret(folder):
                     for k in ls.keys():
                         final_regret[k].append(ls[k])
         
-        final_df = pd.DataFrame(final_regret, index=idx)
-        final_df.sort_index(inplace=True)
-        ax = final_df.plot(kind='bar', rot=0)
+        #final_df = pd.DataFrame(final_regret, index=idx)
+        #final_df.sort_index(inplace=True)
+        idx = np.array(idx)
+        idx_sorted = np.argsort(idx)
+        _, ax = plt.subplots(1, 1, figsize=(6, 4))
+        for k in final_regret.keys():
+            ax.plot(idx[idx_sorted], np.array(final_regret[k])[idx_sorted], marker='o', markersize=8, linestyle='dashed', label=k)
+        #ax = final_df.plot(kind='bar', rot=0)
         ax.grid()
         ax.legend()
         plt.savefig(os.path.join(folder, 'Reg_vs_L_bar_plot.svg'), dpi=200, format='svg')
