@@ -17,8 +17,11 @@ def plot_time_vs_regret(folder):
                 ax.plot(T_arr, df[col].cumsum(), label=col)
             ax.grid()
             ax.legend()
-            filename = f'Reg_vs_T_{int(name_arr[1])}_{int(name_arr[2])}_{int(name_arr[3])}.svg'
-            plt.savefig(os.path.join(root, filename), dpi=200, format='svg')
+            ax.set_title(f'd = {int(name_arr[1])}, k = {int(name_arr[2])}, L = {int(name_arr[3])}')
+            ax.set_xlabel('Time')
+            ax.set_ylabel('Regret')
+            filename = f'Reg_vs_T_{int(name_arr[1])}_{int(name_arr[2])}_{int(name_arr[3])}.png'
+            plt.savefig(os.path.join(root, filename), dpi=200, format='png')
 
 
 def plot_num_arms_vs_regret(folder):
@@ -50,7 +53,10 @@ def plot_num_arms_vs_regret(folder):
         #ax = final_df.plot(kind='bar', rot=0)
         ax.grid()
         ax.legend()
-        plt.savefig(os.path.join(folder, 'Reg_vs_L_bar_plot.svg'), dpi=200, format='svg')
+        ax.set_title('Total Regret vs #Arms')
+        ax.set_xlabel('Number of Arms')
+        ax.set_ylabel('Total Regret')
+        plt.savefig(os.path.join(folder, 'Reg_vs_L_bar_plot.png'), dpi=200, format='png')
 
 
 if __name__ == '__main__':
