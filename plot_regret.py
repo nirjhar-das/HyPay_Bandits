@@ -14,12 +14,13 @@ def plot_time_vs_regret(folder):
             fig, ax = plt.subplots(1, 1, figsize=(10, 6))
             T_arr = np.arange(1, len(df[df.columns[0]])+1)
             for col in df.columns:
-                ax.plot(T_arr, df[col].cumsum(), label=col)
+                if col != 'MHyLinUCB':
+                    ax.plot(T_arr, df[col].cumsum(), label=col)
             ax.grid()
-            ax.legend()
-            ax.set_title(f'd = {int(name_arr[1])}, k = {int(name_arr[2])}, L = {int(name_arr[3])}')
-            ax.set_xlabel('Time')
-            ax.set_ylabel('Regret')
+            ax.legend(fontsize=15)
+            ax.set_title(f'd1 = {int(name_arr[1])}, d2 = {int(name_arr[2])}, K = {int(name_arr[3])}', fontsize=20)
+            ax.set_xlabel('Time', size=20)
+            ax.set_ylabel('Regret', size=20)
             filename = f'Reg_vs_T_{int(name_arr[1])}_{int(name_arr[2])}_{int(name_arr[3])}.png'
             plt.savefig(os.path.join(root, filename), dpi=200, format='png')
 
@@ -62,6 +63,6 @@ def plot_num_arms_vs_regret(folder):
 
 
 if __name__ == '__main__':
-    folder = 'C:/Users/t-nirjhardas/Research/Online XC/Codes/Results/Results'
+    folder = 'Results'
     plot_num_arms_vs_regret(folder)
     plot_time_vs_regret(folder)
