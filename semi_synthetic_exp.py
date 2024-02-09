@@ -210,10 +210,9 @@ def prepare_algo_arr(algo_dict, T, d, k, L, delta=0.01):
 
 def run_bandit_simulation(folder, T, name='Yahoo', max_samples_per_epoch=100000, output='./Results'):
     if name == 'Yahoo':
-        algo_dict = {'MHyLinUCB': {'lambda': 0.0001},
-                        'LinUCB': {'lambda': 0.0001},
-                        'DisLinUCB': {'lambda': 0.0001},
-                        'HyLinUCB': {'lambda': 0.0001}}
+        algo_dict = {'LinUCB': {'lambda': 0.0001},
+                     'DisLinUCB': {'lambda': 0.0001},
+                     'HyLinUCB': {'lambda': 0.0001}}
         algo_arr = prepare_algo_arr(algo_dict, None, 36, 6, 20)
         if os.path.exists(os.path.join(output, 'lin_reg_model.pt')):
             print('Model found. Loading...')
@@ -246,13 +245,13 @@ def run_bandit_simulation(folder, T, name='Yahoo', max_samples_per_epoch=100000,
                 alg.update(data, noisy_rewards[i], algo_regret_arr[i])
                 all_regrets[alg.name].append(algo_regret_arr[i])
             t += 1
-            # if (t % 500) == 0:
+            # if (t % 500) == 0:+
             #     print(data_tensor)
             if t == T:
                 break
         print('Simulation done.')
         df = pd.DataFrame(all_regrets)
-        df.to_csv(os.path.join(output, f'Yahoo-Semi-Synthetic-Regrets-{T}.csv'))
+        df.to_csv(os.path.join(output, f'Yahoo-Semi-Synthetic-Regrets-{T}-Final.csv'), index=False)
         return all_regrets
 
 def plot_regret(regret_dict, T, name='Yahoo', output='./Results'):
@@ -268,7 +267,7 @@ def plot_regret(regret_dict, T, name='Yahoo', output='./Results'):
         ax.set_xlabel('Time')
         ax.set_ylabel('Regret')
 
-        plt.savefig(os.path.join(output, f'Yahoo-Semi-Synthetic-{T}.png'), dpi=200)
+        plt.savefig(os.path.join(output, f'Yahoo-Semi-Synthetic-{T}-Final.png'), dpi=200)
 
 
 if __name__=='__main__':

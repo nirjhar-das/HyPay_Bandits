@@ -38,10 +38,12 @@ def plot_num_arms_vs_regret(folder):
                 idx.append(int(name_arr[3]))
                 if len(final_regret.keys()) == 0:
                     for k in ls.keys():
-                        final_regret[k] = [ls[k]]
+                        if k != 'MHyLinUCB':
+                            final_regret[k] = [ls[k]]
                 else:
                     for k in ls.keys():
-                        final_regret[k].append(ls[k])
+                        if k != 'MHyLinUCB':
+                            final_regret[k].append(ls[k])
         
         #final_df = pd.DataFrame(final_regret, index=idx)
         #final_df.sort_index(inplace=True)
@@ -60,6 +62,6 @@ def plot_num_arms_vs_regret(folder):
 
 
 if __name__ == '__main__':
-    folder = 'Results'
+    folder = 'C:/Users/t-nirjhardas/Research/Online XC/Codes/Results/Results'
     plot_num_arms_vs_regret(folder)
     plot_time_vs_regret(folder)
