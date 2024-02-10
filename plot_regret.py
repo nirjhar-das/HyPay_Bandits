@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from utils import get_color
 
 def plot_time_vs_regret(folder):
     
@@ -28,32 +29,42 @@ def plot_time_vs_regret(folder):
 def plot_num_arms_vs_regret(folder):
     final_regret = {}
     idx = []
+    _, ax = plt.subplots(1, 1, figsize=(6, 4))
+    idx_hyran = []
+    reg_hyran = []
     for root, dirs, files in os.walk(folder):
         for file in files:
             if not file.startswith('Testbench'):
                 continue
-            name_arr = file.split('_')
-            if name_arr[1] == '10' and name_arr[2] == '10':
-                df = pd.read_csv(os.path.join(root, file))
-                ls = df.cumsum().iloc[-1]
-                idx.append(int(name_arr[3]))
-                if len(final_regret.keys()) == 0:
+            if 'HyRan' not in file:
+                name_arr = file.split('_')
+                if name_arr[1] == '10' and name_arr[2] == '10':
+                    df = pd.read_csv(os.path.join(root, file))
+                    ls = df.cumsum().iloc[-1]
+                    idx.append(int(name_arr[3]))
                     for k in ls.keys():
                         if k != 'MHyLinUCB':
-                            final_regret[k] = [ls[k]]
-                else:
-                    for k in ls.keys():
-                        if k != 'MHyLinUCB':
-                            final_regret[k].append(ls[k])
-        
-        #final_df = pd.DataFrame(final_regret, index=idx)
-        #final_df.sort_index(inplace=True)
+                            if k not in final_regret.keys():
+                                final_regret[k] = [ls[k]]
+                            else:
+                                final_regret[k].append(ls[k])
+            else:
+                name_arr = file.split('_')
+                if name_arr[1] == '10' and name_arr[2] == '10':
+                    df = pd.read_csv(os.path.join(root, file))
+                    ls = df.cumsum().iloc[-1]
+                    idx_hyran.append(int(name_arr[3]))
+                    reg_hyran.append(float(ls['HyRan']))
+            #final_df = pd.DataFrame(final_regret, index=idx)
+            #final_df.sort_index(inplace=True)
         idx = np.array(idx)
         idx_sorted = np.argsort(idx)
-        _, ax = plt.subplots(1, 1, figsize=(6, 4))
+        idx_hyran = np.array(idx_hyran)
+        idx_hyran_sorted = np.argsort(idx_hyran)
         for k in final_regret.keys():
-            ax.plot(idx[idx_sorted], np.array(final_regret[k])[idx_sorted], marker='o', markersize=8, linestyle='dashed', label=k)
+            ax.plot(idx[idx_sorted], np.array(final_regret[k])[idx_sorted], marker='o', markersize=8, linestyle='dashed', label=k, color=get_color(k))
         #ax = final_df.plot(kind='bar', rot=0)
+        ax.plot(idx_hyran[idx_hyran_sorted], np.array(reg_hyran)[idx_hyran_sorted], marker='o', markersize=8, linestyle='dashed', label='HyRan', color=get_color('HyRan'))
         ax.grid()
         ax.legend()
         ax.set_title('Total Regret vs #Arms')
@@ -65,4 +76,4 @@ def plot_num_arms_vs_regret(folder):
 if __name__ == '__main__':
     folder = 'Results'
     plot_num_arms_vs_regret(folder)
-    plot_time_vs_regret(folder)
+    #plot_time_vs_regret(folder)

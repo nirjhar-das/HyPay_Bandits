@@ -111,15 +111,17 @@ def all_simulations(d, k, L, T, model_type, num_trials, num_envs, seed=194821263
         env = HybridBandits(env_name, config)
         if model_type ==  'Linear':
             if (d == 100 and k == 10 and L == 25) or (d == 10 and k == 100 and L == 25):
-                algo_dict = {'HyLinUCB': {'lambda': 0.01},
-                        'LinUCB': {'lambda': 0.01},
-                        'DisLinUCB': {'lambda': 0.01},
-                        'SupLinUCB': {'lambda': 0.01},
-                        'HyRan': {'lambda': 0.01, 'p': 0.65}}
+                # algo_dict = {'HyLinUCB': {'lambda': 0.01},
+                #         'LinUCB': {'lambda': 0.01},
+                #         'DisLinUCB': {'lambda': 0.01},
+                #         'SupLinUCB': {'lambda': 0.01},
+                #         'HyRan': {'lambda': 1.0, 'p': 0.65}}
+                algo_dict = {'HyRan': {'lambda': 1.0, 'p': 0.5}}
             else:
-                algo_dict = {'HyLinUCB': {'lambda': 0.01},
-                            'LinUCB': {'lambda': 0.01},
-                            'DisLinUCB': {'lambda': 0.01}}
+                # algo_dict = {'HyLinUCB': {'lambda': 0.01},
+                #             'LinUCB': {'lambda': 0.01},
+                #             'DisLinUCB': {'lambda': 0.01}}
+                algo_dict = {'HyRan': {'lambda': 1.0, 'p': 0.5}}
             rewards, regrets = multi_simulation_linear(num_trials, algo_dict, env, delta, T)
         elif model_type == 'Logistic':
             algo_dict = {'HyEcoLog': {'lambda': 1.0},
@@ -139,7 +141,7 @@ def all_simulations(d, k, L, T, model_type, num_trials, num_envs, seed=194821263
         all_regrets[j] /= (num_envs * num_trials)
     
     result_dict = {c : all_regrets[s] for s, c in enumerate(algo_dict.keys())}
-    filename = f'{env_name}_{d}_{k}_{L}_{T}_{model_type}.csv'
+    filename = f'{env_name}_{d}_{k}_{L}_{T}_{model_type}_HyRan.csv'
     df = pd.DataFrame(data=result_dict)
     df.to_csv(os.path.join('Results', filename), index=False)
 
@@ -149,20 +151,20 @@ if __name__=='__main__':
     args = parser.parse_args()
     if args.model_type == 'Linear':
         #d_arr = [100, 10]
-        d_arr = [100, 10]
+        d_arr = [10, 100]
         k_arr  = [10, 100]
         #L_arr = [25] + [2**i for i in range(1, 11)]
-        L_arr = [25] + [320, 450]
+        L_arr = [25] + [100, 200, 300]
         T = 10000
-        for L in L_arr:
-            for  d in d_arr:
-                for  k in k_arr:
+        for k in k_arr:
+            for d in d_arr:
+                for  L in L_arr:
                     if(d == 10 and k == 100 and L == 25):
                         all_simulations(d, k, L, T, 'Linear', 3, 3)
                     elif(d == 100 and k == 10 and L == 25):
                         all_simulations(d, k, L, T, 'Linear', 3, 3)
                     elif(d == 10 and k == 10 and L != 25):
-                        all_simulations(d, k, L, T, 'Linear', 3, 5)
+                        all_simulations(d, k, L, T, 'Linear', 2, 2)
     elif args.model_type == 'Logistic':
         T = 2000
         d_arr = [0, 3, 10, 16]
