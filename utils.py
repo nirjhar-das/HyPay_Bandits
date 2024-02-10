@@ -2,6 +2,18 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+def get_color(algo_name):
+    if algo_name == 'HyLinUCB':
+        return 'blue'
+    if algo_name  == 'LinUCB':
+        return 'orange'
+    if algo_name == 'DisLinUCB':
+        return 'red'
+    if algo_name == 'HyRan':
+        return 'green'
+    if algo_name == 'SupLinUCB':
+        return 'cyan'
+
 def create_reward_plot(env, nrows, ncols):
     if nrows <= 1:
         fig, ax = plt.subplots(ncols, sharex=True, sharey=True)

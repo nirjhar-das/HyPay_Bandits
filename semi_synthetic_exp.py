@@ -9,6 +9,7 @@ from torch.utils.data import IterableDataset, DataLoader
 from torch import nn
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from utils import get_color
 
 class YahooDataset(IterableDataset):
     def __init__(self, folder):
@@ -136,8 +137,7 @@ class SemiSyntheticEnv:
         for name in self.file_names:
             with gzip.open(name, 'rt') as f:
                 for line in f:
-                    data_dict = self.process_line(line)
-                    yield data_dict
+                    yield self.process_line(line)
 
 
 def convert_to_long_tensors(arm_features_list, name='yahoo'):
@@ -184,52 +184,59 @@ def train_linear_regression(folder, name='Yahoo', n_epochs=10, max_samples_per_e
     return model
 
 def prepare_algo_arr(algo_dict, T, d, k, L, delta=0.01):
-    from algorithms.linear import DisLinUCB_Offline, HyLinUCB_Offline, OFUL_Offline, MHyLinUCB_Offline, LinUCB_Offline #, SupLinUCB_Offline
+    from algorithms.linear import DisLinUCB_Offline, HyLinUCB_Offline, OFUL_Offline, MHyLinUCB_Offline, LinUCB_Offline, HyRan_Offline #, SupLinUCB_Offline
     algo_arr = []
     for key in algo_dict.keys():
         if key == 'DisLinUCB':
             lmbda = algo_dict[key]['lambda']
-            algo_arr.append(DisLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.0001, lmbda))
+            algo_arr.append(DisLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.01, lmbda))
         elif key == 'HyLinUCB':
             lmbda = algo_dict[key]['lambda']
-            algo_arr.append(HyLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.0001, lmbda))
+            algo_arr.append(HyLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.01, lmbda))
         elif key == 'OFUL':
             lmbda = algo_dict[key]['lambda']
-            algo_arr.append(OFUL_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.0001, lmbda))
+            algo_arr.append(OFUL_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.01, lmbda))
         elif key == 'MHyLinUCB':
             lmbda = algo_dict[key]['lambda']
-            algo_arr.append(MHyLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.0001, lmbda))
+            algo_arr.append(MHyLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.01, lmbda))
         elif key == 'LinUCB':
             lmbda = algo_dict[key]['lambda']
-            algo_arr.append(LinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.0001, lmbda))
+            algo_arr.append(LinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.01, lmbda))
+        elif key == 'HyRan':
+            #lmbda = algo_dict[key]['lambda']
+            p = algo_dict[key]['p']
+            algo_arr.append(HyRan_Offline(d, k, L, p))
         # elif key == 'SupLinUCB':
         #     lmbda = algo_dict[key]['lambda']
         #     algo_arr.append(SupLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.25, lmbda, T))
     return algo_arr
 
 
-def run_bandit_simulation(folder, T, name='Yahoo', max_samples_per_epoch=100000, output='./Results'):
+def run_bandit_simulation(folder, T, name='Yahoo', n_epochs=5, max_samples_per_epoch=100000, output='./Results'):
     if name == 'Yahoo':
-        algo_dict = {'LinUCB': {'lambda': 0.0001},
-                     'DisLinUCB': {'lambda': 0.0001},
-                     'HyLinUCB': {'lambda': 0.0001}}
-        algo_arr = prepare_algo_arr(algo_dict, None, 36, 6, 20)
-        if os.path.exists(os.path.join(output, 'lin_reg_model.pt')):
+        algo_dict = {'LinUCB': {'lambda': 0.001},
+                     'DisLinUCB': {'lambda': 0.001},
+                     'HyLinUCB': {'lambda': 0.0001},
+                     'HyRan': {'p': 0.5}}
+        d, k, L = 36, 6, 20
+        algo_arr = prepare_algo_arr(algo_dict, None, d, k, L)
+        if os.path.exists(os.path.join(output, f'lin_reg_model_{d}_{k}_{L}.pt')):
             print('Model found. Loading...')
-            model = LinearRegression(36, 6, 20)
-            model = torch.load(os.path.join(output, 'lin_reg_model.pt'))
+            model = LinearRegression(d, k, L)
+            model = torch.load(os.path.join(output, f'lin_reg_model_{d}_{k}_{L}.pt'))
             print('Model loaded')
         else:
             print('Model not found. Training model...')
-            model = train_linear_regression(folder, max_samples_per_epoch=max_samples_per_epoch)
+            model = train_linear_regression(folder, n_epochs=n_epochs, max_samples_per_epoch=max_samples_per_epoch)
             print('Saving model...')
-            torch.save(model, os.path.join(output, 'lin_reg_model.pt'))
+            torch.save(model, os.path.join(output, f'lin_reg_model_{d}_{k}_{L}.pt'))
             print('Model saved')
         model.eval()
         env = SemiSyntheticEnv(folder, 'Yahoo', 20)
         all_regrets = {key : [] for key in algo_dict.keys()}
         t = 0
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        rng = np.random.default_rng(0)
         print('Simulating Bandit Learning...')
         for data in tqdm(env.step(), total=T):
             all_preds = [a.predict(data) for a in algo_arr]
@@ -238,7 +245,7 @@ def run_bandit_simulation(folder, T, name='Yahoo', max_samples_per_epoch=100000,
             data_tensor = data_tensor.to(device)
             with torch.no_grad():
                 all_rewards = model(data_tensor).detach().cpu().numpy().reshape(-1)
-            noisy_rewards = all_rewards + np.random.uniform(-0.1, 0.1, size=all_rewards.shape)
+            noisy_rewards = all_rewards + rng.uniform(-0.1, 0.1, size=all_rewards.shape)
             max_reward = np.max(all_rewards)
             algo_regret_arr = [max_reward - all_rewards[a] for a in all_preds]
             for i, alg in enumerate(algo_arr):
@@ -259,7 +266,7 @@ def plot_regret(regret_dict, T, name='Yahoo', output='./Results'):
         _, ax = plt.subplots(1, 1, figsize=(6, 4))
         time_steps = np.arange(1, T+1)
         for k in regret_dict.keys():
-            ax.plot(time_steps, np.cumsum(regret_dict[k]), label=k)
+            ax.plot(time_steps, np.cumsum(regret_dict[k]), label=k, color=get_color(k))
         
         ax.legend()
         ax.grid()
@@ -275,12 +282,13 @@ if __name__=='__main__':
     parser.add_argument('-n', '--name', type=str, help='name of the dataset [options: Yahoo]', default='Yahoo')
     parser.add_argument('-z', '--zipfolder', type=str, help='path to zipped data folder')
     parser.add_argument('-s', '--samples_per_epoch', type=int, help='max number of samples to train per epoch', default=100000)
+    parser.add_argument('-e', '--num_epochs', type=int, help='number of epochs', default=5)
     parser.add_argument('-T', '--timesteps', type=int, help='number of time steps', default=100000)
     parser.add_argument('-m', '--model', type=str, help='model type [options: Linear]', default='Linear')
     parser.add_argument('-o', '--output', type=str, help='output folder path', default='./Results')
     args = parser.parse_args()
                 
-    regret_dict = run_bandit_simulation(args.zipfolder, args.timesteps, name=args.name, max_samples_per_epoch=args.samples_per_epoch)
+    regret_dict = run_bandit_simulation(args.zipfolder, args.timesteps, n_epochs=args.num_epochs, name=args.name, max_samples_per_epoch=args.samples_per_epoch)
     plot_regret(regret_dict, args.timesteps, args.name, args.output)
     #model = LinearRegression(36, 6, 20)
     #model = torch.load(os.path.join(args.output, 'lin_reg_model.pt'))
@@ -288,3 +296,4 @@ if __name__=='__main__':
 
 
 
+#python semi_synthetic_exp.py -T 20000 -z ./Dataset/Yahoo-Front-Page/R6 -s 8192 -e 20

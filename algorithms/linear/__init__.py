@@ -10,3 +10,4 @@ from .OFUL_Offline import OFUL_Offline
 from .HyLinUCB_Offline import HyLinUCB_Offline
 from .MHyLinUCB_Offline import MHyLinUCB_Offline
 from .LinUCB_Offline import LinUCB_Offline
+from .HyRan_Offline import HyRan_Offline
