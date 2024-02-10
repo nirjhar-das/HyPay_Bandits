@@ -16,7 +16,7 @@ def plot_time_vs_regret(folder):
             T_arr = np.arange(1, len(df[df.columns[0]])+1)
             for col in df.columns:
                 if col != 'MHyLinUCB':
-                    ax.plot(T_arr, df[col].cumsum(), label=col)
+                    ax.plot(T_arr, df[col].cumsum(), label=col, color=get_color(col))
             ax.grid()
             ax.legend(fontsize=15)
             ax.set_title(f'd1 = {int(name_arr[1])}, d2 = {int(name_arr[2])}, K = {int(name_arr[3])}', fontsize=20)

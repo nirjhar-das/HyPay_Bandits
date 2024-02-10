@@ -151,10 +151,10 @@ if __name__=='__main__':
     args = parser.parse_args()
     if args.model_type == 'Linear':
         #d_arr = [100, 10]
-        d_arr = [10, 100]
-        k_arr  = [10, 100]
+        d_arr = [10]
+        k_arr  = [10]
         #L_arr = [25] + [2**i for i in range(1, 11)]
-        L_arr = [25] + [100, 200, 300]
+        L_arr = [150]
         T = 10000
         for k in k_arr:
             for d in d_arr:
@@ -164,7 +164,7 @@ if __name__=='__main__':
                     elif(d == 100 and k == 10 and L == 25):
                         all_simulations(d, k, L, T, 'Linear', 3, 3)
                     elif(d == 10 and k == 10 and L != 25):
-                        all_simulations(d, k, L, T, 'Linear', 2, 2)
+                        all_simulations(d, k, L, T, 'Linear', 1, 2)
     elif args.model_type == 'Logistic':
         T = 2000
         d_arr = [0, 3, 10, 16]
