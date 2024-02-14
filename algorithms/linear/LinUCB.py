@@ -19,11 +19,11 @@ class LinUCB(Algorithm):
         self.v_arr = []
         for i in range(self.L):
             self.beta_hat_arr.append(np.zeros_like(self.arms[0][1]))
-            self.W_arr.append(np.eye(self.k))
+            self.W_arr.append(self.lmbda*np.eye(self.k))
             self.B_arr.append(np.zeros((self.d, self.k)))
             self.v_arr.append(np.zeros_like(self.arms[0][1]))
         self.u = np.zeros_like(self.arms[0][0])
-        self.V_tilde = np.eye(self.d)
+        self.V_tilde = self.lmbda*np.eye(self.d)
         self.t = 0
         self.a_t = 0
 

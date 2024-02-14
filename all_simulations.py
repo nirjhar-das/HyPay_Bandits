@@ -55,9 +55,8 @@ def multi_simulation_linear(num_trials, algo_dict, env:HybridBandits, delta:floa
                 lmbda = algo_dict[k]['lambda']
                 algo_arr.append(SupLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda, T))
             elif k == 'HyRan':
-                lmbda = algo_dict[k]['lambda']
                 p = algo_dict[k]['p']
-                algo_arr.append(HyRan(env.get_first_action_set(), lmbda, p))
+                algo_arr.append(HyRan(env.get_first_action_set(), p))
         print('Simulating Trial', i+1)
         simulate_linear(env, algo_arr, T)
         env.reset()
@@ -89,7 +88,7 @@ def multi_simulation_logistic(num_trials, algo_dict, env:HybridBandits, delta:fl
             all_regrets[j][i] += np.array(algo_arr[j].regrets)
     return all_rewards, all_regrets
 
-def all_simulations(d, k, L, T, model_type, num_trials, num_envs, seed=194821263):
+def all_simulations(d, k, L, T, name, model_type, num_trials, num_envs, seed=194821263):
     rng = np.random.default_rng(seed)
     config = {}
     config['model_type'] = model_type
@@ -107,7 +106,7 @@ def all_simulations(d, k, L, T, model_type, num_trials, num_envs, seed=194821263
     for i in range(num_envs):
         print('Simulating Env ', i+1, ' of ', num_envs)
         config['seed'] = rng.integers(1074926307) # Uncomment the random seed generator for random instances
-        env_name = 'Testbench'                 # Name of the simulation
+        env_name = name                 # Name of the simulation
         env = HybridBandits(env_name, config)
         if model_type ==  'Linear':
             if (d == 100 and k == 10 and L == 25) or (d == 10 and k == 100 and L == 25):
@@ -116,12 +115,12 @@ def all_simulations(d, k, L, T, model_type, num_trials, num_envs, seed=194821263
                 #         'DisLinUCB': {'lambda': 0.01},
                 #         'SupLinUCB': {'lambda': 0.01},
                 #         'HyRan': {'lambda': 1.0, 'p': 0.65}}
-                algo_dict = {'HyRan': {'lambda': 1.0, 'p': 0.5}}
+                algo_dict = {'HyRan': {'p': 0.5}}
             else:
                 # algo_dict = {'HyLinUCB': {'lambda': 0.01},
                 #             'LinUCB': {'lambda': 0.01},
                 #             'DisLinUCB': {'lambda': 0.01}}
-                algo_dict = {'HyRan': {'lambda': 1.0, 'p': 0.5}}
+                algo_dict = {'HyRan': {'p': 0.5}}
             rewards, regrets = multi_simulation_linear(num_trials, algo_dict, env, delta, T)
         elif model_type == 'Logistic':
             algo_dict = {'HyEcoLog': {'lambda': 1.0},
@@ -147,24 +146,25 @@ def all_simulations(d, k, L, T, model_type, num_trials, num_envs, seed=194821263
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_type', '-m', type=str, required=True, help='Model Type')
+    parser.add_argument('--model_type', '-m', type=str, default='Linear', help='Model Type')
+    parser.add_argument('--name', '-n', type=str, default='Testbench', help='Name of Experiment')
     args = parser.parse_args()
     if args.model_type == 'Linear':
         #d_arr = [100, 10]
         d_arr = [10]
         k_arr  = [10]
         #L_arr = [25] + [2**i for i in range(1, 11)]
-        L_arr = [25] + [200]
+        L_arr = [25] + [200, 250, 300, 400, 500]
         T = 10000
         for k in k_arr:
             for d in d_arr:
                 for  L in L_arr:
                     if(d == 10 and k == 100 and L == 25):
-                        all_simulations(d, k, L, T, 'Linear', 3, 3)
+                        all_simulations(d, k, L, T, args.name, 'Linear', 3, 3)
                     elif(d == 100 and k == 10 and L == 25):
-                        all_simulations(d, k, L, T, 'Linear', 3, 3)
+                        all_simulations(d, k, L, T, args.name, 'Linear', 3, 3)
                     elif(d == 10 and k == 10 and L != 25):
-                        all_simulations(d, k, L, T, 'Linear', 1, 2)
+                        all_simulations(d, k, L, T, args.name, 'Linear', 3, 3)
     elif args.model_type == 'Logistic':
         T = 2000
         d_arr = [0, 3, 10, 16]
