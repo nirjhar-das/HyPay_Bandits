@@ -4,8 +4,8 @@ import os
 from copy import deepcopy
 
 class HybridBandits:
-    def __init__(self, name=None, config=None, load=None):
-        if load is None:
+    def __init__(self, name=None, config=None, load=None, copy_env=None):
+        if load is None and copy_env is None:
             self.name = name
             self.seed = config['seed']
             self.rng = np.random.default_rng(config['seed'])
@@ -26,6 +26,27 @@ class HybridBandits:
                 self.kappa = self.calculate_kappa()
             self.t = 0
             self.best_arm, self.max_reward = self.get_best_arm()
+        elif copy_env is not None:
+            self.name = name
+            self.seed = copy_env.seed
+            self.rng = np.random.default_rng(copy_env.seed)
+            self.model_type = copy_env.model_type
+            self.L = copy_env.L
+            self.d = copy_env.d
+            self.k = copy_env.k
+            self.S1 = copy_env.S1
+            self.S2 = copy_env.S2
+            self.parameters = copy_env.parameters
+            self.M = copy_env.M
+            self.N = copy_env.N
+            self.sigma = copy_env.sigma
+            self.T = copy_env.T
+            self.num_context = self.T
+            self.arms = copy_env.arms
+            if self.model_type == 'Logistic':
+                self.kappa = copy_env.kappa
+            self.t = 0
+            self.best_arm, self.max_reward = copy_env.best_arm, copy_env.max_reward
         else:
             with open(load, 'r') as f:
                 data = json.load(f)
@@ -51,31 +72,6 @@ class HybridBandits:
     def create_arms(self):
         arms = []
         i = 0
-        #best_arm = self.rng.integers(self.L)
-        #x, z = self.M*self.parameters['theta']/np.linalg.norm(self.parameters['theta']),\
-        #                        self.N*self.parameters['beta'][best_arm]/np.linalg.norm(self.parameters['beta'][best_arm])
-        #best_reward = np.dot(x, self.parameters['theta']) + np.dot(z, self.parameters['beta'][best_arm])
-        #if desc == 'easy':
-        #    while(i < self.L):
-        #        if i == best_arm:
-        #            arms.append((x,z))
-        #            i += 1
-        #        else:
-        #            x_proxy = self.rng.uniform(size=self.d + 1)
-        #            z_proxy = self.rng.uniform(size=self.k + 1)
-        #            x_i = self.rng.uniform(0, self.M) * x_proxy / np.linalg.norm(x_proxy)
-        #            z_i = self.rng.uniform(0, self.N) * z_proxy / np.linalg.norm(z_proxy)
-        #            reward = np.dot(x_i, self.parameters['theta']) + np.dot(z_i, self.parameters['beta'][i])
-        #            if self.model_type == 'Linear':
-        #                if (reward > 1e-5) and \
-        #                    (reward < (1 - 0.5)*best_reward):
-        #                    arms.append((x_i, z_i))
-        #                    i += 1
-        #            else:
-        #                if (reward < 1e-3*best_reward):
-        #                    arms.append((x_i, z_i))
-        #                    i += 1
-        #elif desc is None:
         while(i < self.L):
             x_proxy = self.rng.uniform(-1, 1, size=self.d)
             z_proxy = self.rng.uniform(-1, 1, size=self.k)
@@ -83,16 +79,6 @@ class HybridBandits:
             z_i = self.rng.uniform(0, self.N) * z_proxy / np.linalg.norm(z_proxy)
             arms.append((x_i, z_i))
             i += 1
-        # elif desc == 'proportional':
-        #     if self.d != self.k:
-        #         raise ValueError(f'd and k must be same! Found d = {self.d} and k = {self.k}')
-        #     prop = 0.3
-        #     while(i < self.L):
-        #         x_proxy = self.rng.uniform(-1, 1, size=self.d)
-        #         x_i = self.rng.uniform(0, self.M) * x_proxy / np.linalg.norm(x_proxy)
-        #         z_i = prop * x_i
-        #         arms.append((x_i, z_i))
-        #             i += 1
         return arms
     
     def calculate_kappa(self):

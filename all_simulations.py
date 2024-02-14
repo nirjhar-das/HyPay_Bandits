@@ -3,13 +3,14 @@ import argparse
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from multiprocessing import Pool
 
 from environment import HybridBandits
 from algorithms.linear import DisLinUCB, LinUCB, OFUL, MHyLinUCB, SupLinUCB, HyLinUCB, HyRan
 from algorithms.logistic import HyEcoLog, DisEcoLog
 
-def simulate_linear(env, algo_arr, T):
-    for t in tqdm(range(T)):
+def simulate_linear(env, algo_arr, T, i):
+    for t in tqdm(range(T), position=i):
         a_t = []
         for algo in algo_arr:
             a = algo.next_action()
@@ -32,7 +33,9 @@ def simulate_logistic(env, algo_arr, T):
 def multi_simulation_linear(num_trials, algo_dict, env:HybridBandits, delta:float, T:int):
     all_rewards = [np.zeros((num_trials, T)) for _ in range(len(algo_dict.keys()))]
     all_regrets = [np.zeros((num_trials, T)) for _ in range(len(algo_dict.keys()))]
+    args_arr = []
     for i in range(num_trials):
+        copy_env = HybridBandits(copy_env=env)
         algo_arr = []
         for k in algo_dict.keys():
             if k == 'DisLinUCB':
@@ -57,11 +60,14 @@ def multi_simulation_linear(num_trials, algo_dict, env:HybridBandits, delta:floa
                 p = algo_dict[k]['p']
                 algo_arr.append(HyRan(env.get_first_action_set(), p))
         print('Simulating Trial', i+1)
-        simulate_linear(env, algo_arr, T)
-        env.reset()
-        for j in range(len(algo_arr)):
-            all_rewards[j][i] += np.array(algo_arr[j].rewards)
-            all_regrets[j][i] += np.array(algo_arr[j].regrets)
+        args_arr.append((copy_env, algo_arr, T, i+1))
+    with Pool() as p:
+        p.starmap(simulate_linear, args_arr)
+
+    for _, algo_arr_val, _, _ in args_arr:    
+        for j in range(len(algo_arr_val)):
+            all_rewards[j][i] += np.array(algo_arr_val[j].rewards)
+            all_regrets[j][i] += np.array(algo_arr_val[j].regrets)
     return all_rewards, all_regrets
 
 def multi_simulation_logistic(num_trials, algo_dict, env:HybridBandits, delta:float, T:int):
@@ -161,7 +167,7 @@ if __name__=='__main__':
         d_arr = [10]
         k_arr  = [10]
         #L_arr = [25] + [2**i for i in range(1, 11)]
-        L_arr = [25] + [200, 250, 300, 400, 500]
+        L_arr = [25] + [10, 20, 50, 100, 200, 250, 300, 400, 500]
         T = 10000
         for k in k_arr:
             for d in d_arr:
