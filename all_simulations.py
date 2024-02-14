@@ -154,7 +154,7 @@ if __name__=='__main__':
         d_arr = [10, 100]
         k_arr  = [10, 100]
         #L_arr = [25] + [2**i for i in range(1, 11)]
-        L_arr = [25] + [100, 200, 300]
+        L_arr = [25] + [200]
         T = 10000
         for k in k_arr:
             for d in d_arr:
