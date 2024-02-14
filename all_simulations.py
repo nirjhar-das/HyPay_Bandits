@@ -2,7 +2,6 @@ import os
 import argparse
 import numpy as np
 import pandas as pd
-from copy import deepcopy
 from tqdm import tqdm
 
 from environment import HybridBandits
@@ -103,32 +102,40 @@ def all_simulations(d, k, L, T, name, model_type, num_trials, num_envs, seed=194
     config['subgaussian'] = 0.01             # Subgaussianity of noise
     delta = 0.001
     print(f'Configuaration: d={d}, k={k}, L={L}, T={T}, type={model_type}')
+    if (d == 100 and k == 10 and L == 25) or (d == 10 and k == 100 and L == 25):
+        all_rewards = [np.zeros((T,)) for _ in range(len(['HyLinUCB', 'DisLinUCB', 'LinUCB', 'HyRan']))]
+        all_regrets = [np.zeros((T,)) for _ in range(len(['HyLinUCB', 'DisLinUCB', 'LinUCB', 'HyRan']))]
+    else:
+        all_rewards = [np.zeros((T,)) for _ in range(len(['HyLinUCB', 'DisLinUCB', 'LinUCB', 'HyRan', 'SupLinUCB']))]
+        all_regrets = [np.zeros((T,)) for _ in range(len(['HyLinUCB', 'DisLinUCB', 'LinUCB', 'HyRan', 'SupLinUCB']))]
     for i in range(num_envs):
         print('Simulating Env ', i+1, ' of ', num_envs)
         config['seed'] = rng.integers(1074926307) # Uncomment the random seed generator for random instances
-        env_name = name                 # Name of the simulation
-        env = HybridBandits(env_name, config)
+        # Name of the simulation
+        env = HybridBandits(name, config)
         if model_type ==  'Linear':
             if (d == 100 and k == 10 and L == 25) or (d == 10 and k == 100 and L == 25):
-                # algo_dict = {'HyLinUCB': {'lambda': 0.01},
-                #         'LinUCB': {'lambda': 0.01},
-                #         'DisLinUCB': {'lambda': 0.01},
-                #         'SupLinUCB': {'lambda': 0.01},
-                #         'HyRan': {'lambda': 1.0, 'p': 0.65}}
-                algo_dict = {'HyRan': {'p': 0.5}}
+                algo_dict = {'HyLinUCB': {'lambda': 0.01},
+                        'LinUCB': {'lambda': 0.01},
+                        'DisLinUCB': {'lambda': 0.01},
+                        'SupLinUCB': {'lambda': 0.01},
+                        'HyRan': {'lambda': 1.0, 'p': 0.65}}
             else:
-                # algo_dict = {'HyLinUCB': {'lambda': 0.01},
-                #             'LinUCB': {'lambda': 0.01},
-                #             'DisLinUCB': {'lambda': 0.01}}
-                algo_dict = {'HyRan': {'p': 0.5}}
+                algo_dict = {'HyLinUCB': {'lambda': 0.01},
+                            'LinUCB': {'lambda': 0.01},
+                            'DisLinUCB': {'lambda': 0.01},
+                            'HyRan': {'p': 0.5}}
             rewards, regrets = multi_simulation_linear(num_trials, algo_dict, env, delta, T)
+            regrets_dict = {k2: np.sum(regrets[i], axis=0) / num_trials for i, k2 in enumerate(algo_dict.keys())}
+            df = pd.DataFrame(data=regrets_dict)
+            filename = f'{name}_Trial_{i}_{d}_{k}_{L}_{T}_{model_type}.csv'
+            df.to_csv(os.path.join('Results', filename), index=False)
+
         elif model_type == 'Logistic':
             algo_dict = {'HyEcoLog': {'lambda': 1.0},
                         'DisEcoLog': {'lambda': 1.0},
                         'MHyEcoLog': {'lambda': 1.0}}
             rewards, regrets = multi_simulation_logistic(num_trials, algo_dict, env, delta, T)
-        all_rewards = [np.zeros((T,)) for _ in range(len(algo_dict.keys()))]
-        all_regrets = [np.zeros((T,)) for _ in range(len(algo_dict.keys()))]
         for j in range(len(algo_dict.keys())):
             for k1 in range(num_trials):
                 all_rewards[j] += rewards[j][k1]
@@ -140,7 +147,7 @@ def all_simulations(d, k, L, T, name, model_type, num_trials, num_envs, seed=194
         all_regrets[j] /= (num_envs * num_trials)
     
     result_dict = {c : all_regrets[s] for s, c in enumerate(algo_dict.keys())}
-    filename = f'{env_name}_{d}_{k}_{L}_{T}_{model_type}_HyRan.csv'
+    filename = f'{name}_{d}_{k}_{L}_{T}_{model_type}.csv'
     df = pd.DataFrame(data=result_dict)
     df.to_csv(os.path.join('Results', filename), index=False)
 
