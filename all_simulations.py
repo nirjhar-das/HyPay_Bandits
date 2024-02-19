@@ -18,6 +18,7 @@ def simulate_linear(env, algo_arr, T, i):
         rewards_t, regrets_t, action_set_t = env.step(a_t)
         for i, algo in enumerate(algo_arr):
             algo.update(rewards_t[i], regrets_t[i], action_set_t)
+    return algo_arr
 
 def simulate_logistic(env, algo_arr, T):
     for t in tqdm(range(T)):
@@ -62,9 +63,9 @@ def multi_simulation_linear(num_trials, algo_dict, env:HybridBandits, delta:floa
         print('Simulating Trial', i+1)
         args_arr.append((copy_env, algo_arr, T, i+1))
     with Pool() as p:
-        p.starmap(simulate_linear, args_arr)
+        algos_arr_arr = p.starmap(simulate_linear, args_arr)
 
-    for _, algo_arr_val, _, _ in args_arr:    
+    for algo_arr_val in algos_arr_arr:    
         for j in range(len(algo_arr_val)):
             all_rewards[j][i] += np.array(algo_arr_val[j].rewards)
             all_regrets[j][i] += np.array(algo_arr_val[j].regrets)
@@ -93,7 +94,7 @@ def multi_simulation_logistic(num_trials, algo_dict, env:HybridBandits, delta:fl
             all_regrets[j][i] += np.array(algo_arr[j].regrets)
     return all_rewards, all_regrets
 
-def all_simulations(d, k, L, T, name, model_type, num_trials, num_envs, seed=194821263):
+def all_simulations(d, k, L, T, name, model_type, num_trials, num_envs, folder, seed=194821263):
     rng = np.random.default_rng(seed)
     config = {}
     config['model_type'] = model_type
@@ -134,8 +135,8 @@ def all_simulations(d, k, L, T, name, model_type, num_trials, num_envs, seed=194
             rewards, regrets = multi_simulation_linear(num_trials, algo_dict, env, delta, T)
             regrets_dict = {k2: np.sum(regrets[i], axis=0) / num_trials for i, k2 in enumerate(algo_dict.keys())}
             df = pd.DataFrame(data=regrets_dict)
-            filename = f'{name}_Trial_{i}_{d}_{k}_{L}_{T}_{model_type}.csv'
-            df.to_csv(os.path.join('Results', filename), index=False)
+            filename = f'{name}_Trial_{i+1}_{d}_{k}_{L}_{T}_{model_type}.csv'
+            df.to_csv(os.path.join(folder, filename), index=False)
 
         elif model_type == 'Logistic':
             algo_dict = {'HyEcoLog': {'lambda': 1.0},
@@ -155,17 +156,20 @@ def all_simulations(d, k, L, T, name, model_type, num_trials, num_envs, seed=194
     result_dict = {c : all_regrets[s] for s, c in enumerate(algo_dict.keys())}
     filename = f'{name}_{d}_{k}_{L}_{T}_{model_type}.csv'
     df = pd.DataFrame(data=result_dict)
-    df.to_csv(os.path.join('Results', filename), index=False)
+    df.to_csv(os.path.join(folder, filename), index=False)
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_type', '-m', type=str, default='Linear', help='Model Type')
     parser.add_argument('--name', '-n', type=str, default='Testbench', help='Name of Experiment')
+    parser.add_argument('--output', '-o', type=str, default='./Results', help='Output folder to store')
     args = parser.parse_args()
+    if not os.path.exists(args.output):
+        os.mkdir(args.output)
     if args.model_type == 'Linear':
         #d_arr = [100, 10]
-        d_arr = [10]
-        k_arr  = [10]
+        d_arr = [10, 100]
+        k_arr  = [10, 100]
         #L_arr = [25] + [2**i for i in range(1, 11)]
         L_arr = [25] + [10, 20, 50, 100, 200, 250, 300, 400, 500]
         T = 10000
@@ -173,11 +177,11 @@ if __name__=='__main__':
             for d in d_arr:
                 for  L in L_arr:
                     if(d == 10 and k == 100 and L == 25):
-                        all_simulations(d, k, L, T, args.name, 'Linear', 3, 3)
+                        all_simulations(d, k, L, T, args.name, 'Linear', 5, 5, args.output)
                     elif(d == 100 and k == 10 and L == 25):
-                        all_simulations(d, k, L, T, args.name, 'Linear', 3, 3)
+                        all_simulations(d, k, L, T, args.name, 'Linear', 5, 5, args.output)
                     elif(d == 10 and k == 10 and L != 25):
-                        all_simulations(d, k, L, T, args.name, 'Linear', 3, 3)
+                        all_simulations(d, k, L, T, args.name, 'Linear', 5, 5, args.output)
     elif args.model_type == 'Logistic':
         T = 2000
         d_arr = [0, 3, 10, 16]
