@@ -129,9 +129,9 @@ def all_simulations(d, k, L, T, name, model_type, num_trials, num_envs, folder, 
                         'HyRan': {'lambda': 1.0, 'p': 0.65}}
             else:
                 algo_dict = {'HyLinUCB': {'lambda': 0.01},
-                            'LinUCB': {'lambda': 0.01},
-                            'DisLinUCB': {'lambda': 0.01},
-                            'HyRan': {'p': 0.5}}
+                            'LinUCB': {'lambda': 0.01}}
+                            #'DisLinUCB': {'lambda': 0.01},
+                            #'HyRan': {'p': 0.5}}
             rewards, regrets = multi_simulation_linear(num_trials, algo_dict, env, delta, T)
             regrets_dict = {k2: np.sum(regrets[i], axis=0) / num_trials for i, k2 in enumerate(algo_dict.keys())}
             df = pd.DataFrame(data=regrets_dict)
@@ -168,11 +168,11 @@ if __name__=='__main__':
         os.mkdir(args.output)
     if args.model_type == 'Linear':
         #d_arr = [100, 10]
-        d_arr = [10, 100]
-        k_arr  = [10, 100]
+        d_arr = [2]
+        k_arr  = [2]
         #L_arr = [25] + [2**i for i in range(1, 11)]
-        L_arr = [25] + [10, 20, 50, 100, 200, 250, 300, 400, 500]
-        T = 10000
+        L_arr = [25] + [20, 100, 200, 250, 300, 400, 500, 600, 700, 800, 900]
+        T = 100000
         for k in k_arr:
             for d in d_arr:
                 for  L in L_arr:
@@ -182,6 +182,8 @@ if __name__=='__main__':
                         all_simulations(d, k, L, T, args.name, 'Linear', 5, 5, args.output)
                     elif(d == 10 and k == 10 and L != 25):
                         all_simulations(d, k, L, T, args.name, 'Linear', 5, 5, args.output)
+                    elif(d == 2 and k == 2 and L != 25):
+                        all_simulations(d, k, L, T, args.name, 'Linear', 2, 2, args.output)
     elif args.model_type == 'Logistic':
         T = 2000
         d_arr = [0, 3, 10, 16]
