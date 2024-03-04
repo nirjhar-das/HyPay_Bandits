@@ -171,8 +171,8 @@ if __name__=='__main__':
         d_arr = [2]
         k_arr  = [2]
         #L_arr = [25] + [2**i for i in range(1, 11)]
-        L_arr = [25] + [20, 100, 200, 250, 300, 400, 500, 600, 700, 800, 900]
-        T = 100000
+        L_arr = [25] + [700, 800, 900]
+        T = 10000
         for k in k_arr:
             for d in d_arr:
                 for  L in L_arr:

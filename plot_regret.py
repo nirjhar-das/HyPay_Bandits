@@ -35,10 +35,13 @@ def plot_num_arms_vs_regret_single_trial(folder, name, id):
             if (not file.startswith(name)) or (f'Trial_{id}' not in file):
                 continue
             name_arr = file.split('_')
-            if name_arr[3] == '10' and name_arr[4] == '10':
+            if name_arr[3] == '2' and name_arr[4] == '2':
                 df = pd.read_csv(os.path.join(root, file))
                 print(id, os.path.join(root, file))
-                ls = df.cumsum().iloc[-1]
+                if ('20' in file) or ('100' in file) or ('200' in file) or ('250' in file) or ('300' in file):
+                    ls = df.cumsum().iloc[10000 - 1]
+                else:
+                    ls = df.cumsum().iloc[-1]
                 idx.append(int(name_arr[5]))
                 for k in ls.keys():
                     if k not in final_regret.keys():
@@ -66,9 +69,12 @@ def plot_num_arms_vs_regret_combined(folder, name):
             if not file.startswith(name):
                 continue
             name_arr = file.split('_')
-            if name_arr[1] == '10' and name_arr[2] == '10':
+            if name_arr[1] == '2' and name_arr[2] == '2':
                 df = pd.read_csv(os.path.join(root, file))
-                ls = df.cumsum().iloc[-1]
+                if ('20' in file) or ('100' in file) or ('200' in file) or ('250' in file) or ('300' in file):
+                    ls = df.cumsum().iloc[10000 - 1]
+                else:
+                    ls = df.cumsum().iloc[-1]
                 idx.append(int(name_arr[3]))
                 for k in ls.keys():
                     if k not in final_regret.keys():
