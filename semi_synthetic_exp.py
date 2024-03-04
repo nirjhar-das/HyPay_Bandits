@@ -10,6 +10,8 @@ from torch import nn
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils import get_color
+#from multiprocessing import Pool
+from concurrent.futures import ProcessPoolExecutor as Pool
 
 class YahooDataset(IterableDataset):
     def __init__(self, folder):
@@ -212,56 +214,46 @@ def prepare_algo_arr(algo_dict, T, d, k, L, delta=0.01):
     return algo_arr
 
 
-def run_bandit_simulation(folder, T, name='Yahoo', n_epochs=5, max_samples_per_epoch=100000, output='./Results'):
+def run_bandit_simulation(folder, trial, T, model, name='Yahoo', output='./Results'):
     if name == 'Yahoo':
-        algo_dict = {'LinUCB': {'lambda': 0.001},
-                     'DisLinUCB': {'lambda': 0.001},
-                     'HyLinUCB': {'lambda': 0.0001},
+        algo_dict = {'LinUCB': {'lambda': 1e+3},
+                     'DisLinUCB': {'lambda': 1e+2},
+                     'HyLinUCB': {'lambda': 1e+3},
                      'HyRan': {'p': 0.5}}
         d, k, L = 36, 6, 20
         algo_arr = prepare_algo_arr(algo_dict, None, d, k, L)
-        if os.path.exists(os.path.join(output, f'lin_reg_model_{d}_{k}_{L}.pt')):
-            print('Model found. Loading...')
-            model = LinearRegression(d, k, L)
-            model = torch.load(os.path.join(output, f'lin_reg_model_{d}_{k}_{L}.pt'))
-            print('Model loaded')
-        else:
-            print('Model not found. Training model...')
-            model = train_linear_regression(folder, n_epochs=n_epochs, max_samples_per_epoch=max_samples_per_epoch)
-            print('Saving model...')
-            torch.save(model, os.path.join(output, f'lin_reg_model_{d}_{k}_{L}.pt'))
-            print('Model saved')
-        model.eval()
         env = SemiSyntheticEnv(folder, 'Yahoo', 20)
         all_regrets = {key : [] for key in algo_dict.keys()}
         t = 0
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        rng = np.random.default_rng(0)
+        rng = np.random.default_rng(trial)
         print('Simulating Bandit Learning...')
-        for data in tqdm(env.step(), total=T):
+        for data in tqdm(env.step(), total=T, position=trial + 1):
             all_preds = [a.predict(data) for a in algo_arr]
             data_tensor = convert_to_long_tensors(data)
             data_tensor = data_tensor.float()
             data_tensor = data_tensor.to(device)
             with torch.no_grad():
                 all_rewards = model(data_tensor).detach().cpu().numpy().reshape(-1)
-            noisy_rewards = all_rewards + rng.uniform(-0.1, 0.1, size=all_rewards.shape)
+            noisy_rewards = all_rewards + rng.normal(0.0, 0.00001, size=all_rewards.shape)
             max_reward = np.max(all_rewards)
             algo_regret_arr = [max_reward - all_rewards[a] for a in all_preds]
             for i, alg in enumerate(algo_arr):
                 alg.update(data, noisy_rewards[i], algo_regret_arr[i])
                 all_regrets[alg.name].append(algo_regret_arr[i])
             t += 1
-            # if (t % 500) == 0:+
-            #     print(data_tensor)
+            # if (t % 1000) == 0 and trial == 0:
+            #     for ag in algo_arr:
+            #         if ag.name != 'DisLinUCB':
+            #             print(np.linalg.norm(model.params.weight.detach().cpu().numpy() - np.concatenate([ag.theta_hat] + ag.beta_hat_arr)))
             if t == T:
                 break
         print('Simulation done.')
         df = pd.DataFrame(all_regrets)
-        df.to_csv(os.path.join(output, f'Yahoo-Semi-Synthetic-Regrets-{T}-Final.csv'), index=False)
+        df.to_csv(os.path.join(output, f'Yahoo-Semi-Synthetic-{T}-{trial+1}-Final.csv'), index=False)
         return all_regrets
 
-def plot_regret(regret_dict, T, name='Yahoo', output='./Results'):
+def plot_regret(regret_dict, T, name='Yahoo', output='./Results', id=None):
     if name == 'Yahoo':
         _, ax = plt.subplots(1, 1, figsize=(6, 4))
         time_steps = np.arange(1, T+1)
@@ -273,8 +265,14 @@ def plot_regret(regret_dict, T, name='Yahoo', output='./Results'):
         ax.set_title('Yahoo! Front Page')
         ax.set_xlabel('Time')
         ax.set_ylabel('Regret')
+        if id is not None:
+            plt.savefig(os.path.join(output, f'Yahoo-Semi-Synthetic-{T}-{id+1}-Final.png'), dpi=200)
+        else:
+            plt.savefig(os.path.join(output, f'Yahoo-Semi-Synthetic-{T}-Final.png'), dpi=200)
 
-        plt.savefig(os.path.join(output, f'Yahoo-Semi-Synthetic-{T}-Final.png'), dpi=200)
+def run_sim_wrapper(args):
+    return run_bandit_simulation(*args)
+
 
 
 if __name__=='__main__':
@@ -286,13 +284,51 @@ if __name__=='__main__':
     parser.add_argument('-T', '--timesteps', type=int, help='number of time steps', default=100000)
     parser.add_argument('-m', '--model', type=str, help='model type [options: Linear]', default='Linear')
     parser.add_argument('-o', '--output', type=str, help='output folder path', default='./Results')
+    parser.add_argument('-t', '--num_trials', type=int, default=5, help='number of trials')
     args = parser.parse_args()
-                
-    regret_dict = run_bandit_simulation(args.zipfolder, args.timesteps, n_epochs=args.num_epochs, name=args.name, max_samples_per_epoch=args.samples_per_epoch)
-    plot_regret(regret_dict, args.timesteps, args.name, args.output)
-    #model = LinearRegression(36, 6, 20)
-    #model = torch.load(os.path.join(args.output, 'lin_reg_model.pt'))
-    #print(model.params.weight)
+    if not os.path.exists(args.output):
+        os.mkdir(args.output)
+    if args.name == 'Yahoo':
+        d, k, L = 36, 6, 20
+        if os.path.exists(os.path.join(args.output, f'lin_reg_model_{d}_{k}_{L}.pt')):
+            print('Model found. Loading...')
+            models = []
+            for i in range(args.num_trials):
+                model = LinearRegression(d, k, L)
+                model = torch.load(os.path.join(args.output, f'lin_reg_model_{d}_{k}_{L}.pt'))
+                model.eval()
+                # if i == 0:
+                #     print(model.params.weight)
+                models.append(model) 
+            print('Model loaded')
+        else:
+            print('Model not found. Training model...')
+            model = train_linear_regression(args.zipfolder, n_epochs=args.num_epochs, max_samples_per_epoch=args.samples_per_epoch)
+            print('Saving model...')
+            torch.save(model, os.path.join(args.output, f'lin_reg_model_{d}_{k}_{L}.pt'))
+            print('Model saved')
+            models = []
+            for i in range(args.num_trials):
+                model = LinearRegression(d, k, L)
+                model = torch.load(os.path.join(args.output, f'lin_reg_model_{d}_{k}_{L}.pt'))
+                models.append(model) 
+    
+    args_arr = [[args.zipfolder, i, args.timesteps, models[i], args.name, args.output] for i in range(args.num_trials)]
+    with Pool() as p:
+        regret_dict_arr = p.map(run_sim_wrapper, args_arr)
+    total_dict = {}
+    for i, regret_dict in enumerate(regret_dict_arr):
+        plot_regret(regret_dict, args.timesteps, args.name, args.output, i)
+        for k in regret_dict.keys():
+            if k not in total_dict.keys():
+                total_dict[k] = np.array(regret_dict[k])
+            else:
+                total_dict[k] += np.array(regret_dict[k])
+    
+    for k in total_dict.keys():
+        total_dict[k] /= args.num_trials
+    
+    plot_regret(total_dict, args.timesteps, args.name, args.output)
 
 
 

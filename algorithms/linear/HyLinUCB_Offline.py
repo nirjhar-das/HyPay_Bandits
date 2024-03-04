@@ -23,7 +23,7 @@ class HyLinUCB_Offline(Algorithm):
             self.B_arr.append(np.zeros((self.d, self.k)))
             self.v_arr.append(np.zeros((self.k,)))
         self.u = np.zeros((self.d,))
-        self.V_tilde = np.eye(self.lmbda * self.d)
+        self.V_tilde = self.lmbda * np.eye(self.d)
         self.t = 0
         self.a_t = 0
 
