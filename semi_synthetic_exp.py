@@ -88,7 +88,7 @@ class SemiSyntheticEnv:
                 for name in files:
                     if '2009' in name:
                         self.file_names.append(os.path.join(root, name))
-            self.file_names[-1]
+            self.file_names = self.file_names[5:]
         self.num_arms = num_arms
 
     def process_line(self, line):
@@ -140,6 +140,7 @@ class SemiSyntheticEnv:
             with gzip.open(name, 'rt') as f:
                 for line in f:
                     yield self.process_line(line)
+        yield "Data Exhausted!"
 
 
 def convert_to_long_tensors(arm_features_list, name='yahoo'):
@@ -154,7 +155,6 @@ def convert_to_long_tensors(arm_features_list, name='yahoo'):
 
 def train_linear_regression(folder, name='Yahoo', n_epochs=10, max_samples_per_epoch=100000, batch_size=4096):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(device)
     if name == 'Yahoo':
         model = LinearRegression(36, 6, 20)
         model.to(device)
@@ -227,8 +227,12 @@ def run_bandit_simulation(folder, trial, T, model, name='Yahoo', output='./Resul
         t = 0
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         rng = np.random.default_rng(trial)
+        data_exhaust = False
         print('Simulating Bandit Learning...')
         for data in tqdm(env.step(), total=T, position=trial + 1):
+            if data == "Data Exhausted!":
+                data_exhaust = True
+                break
             all_preds = [a.predict(data) for a in algo_arr]
             data_tensor = convert_to_long_tensors(data)
             data_tensor = data_tensor.float()
@@ -248,14 +252,20 @@ def run_bandit_simulation(folder, trial, T, model, name='Yahoo', output='./Resul
             #             print(np.linalg.norm(model.params.weight.detach().cpu().numpy() - np.concatenate([ag.theta_hat] + ag.beta_hat_arr)))
             if t == T:
                 break
-        print('Simulation done.')
+        
+        if data_exhaust:
+            T = t
+            print(f'Data Exhausted! Simulation done upto {T} time steps!')
+        else:
+            print('Simulation done.')
         df = pd.DataFrame(all_regrets)
         df.to_csv(os.path.join(output, f'Yahoo-Semi-Synthetic-{T}-{trial+1}-Final.csv'), index=False)
         return all_regrets
 
-def plot_regret(regret_dict, T, name='Yahoo', output='./Results', id=None):
+def plot_regret(regret_dict, name='Yahoo', output='./Results', id=None):
     if name == 'Yahoo':
         _, ax = plt.subplots(1, 1, figsize=(6, 4))
+        T = len(regret_dict[list(regret_dict.keys())[0]])
         time_steps = np.arange(1, T+1)
         for k in regret_dict.keys():
             ax.plot(time_steps, np.cumsum(regret_dict[k]), label=k, color=get_color(k))
@@ -318,7 +328,7 @@ if __name__=='__main__':
         regret_dict_arr = p.map(run_sim_wrapper, args_arr)
     total_dict = {}
     for i, regret_dict in enumerate(regret_dict_arr):
-        plot_regret(regret_dict, args.timesteps, args.name, args.output, i)
+        plot_regret(regret_dict, args.name, args.output, i)
         for k in regret_dict.keys():
             if k not in total_dict.keys():
                 total_dict[k] = np.array(regret_dict[k])
@@ -328,8 +338,8 @@ if __name__=='__main__':
     for k in total_dict.keys():
         total_dict[k] /= args.num_trials
     
-    plot_regret(total_dict, args.timesteps, args.name, args.output)
+    plot_regret(total_dict, args.name, args.output)
 
 
 
-#python semi_synthetic_exp.py -T 20000 -z ./Dataset/Yahoo-Front-Page/R6 -s 8192 -e 20
+#python semi_synthetic_exp.py -T 1000 -o New_Result -t 4 -z ./Dataset/Yahoo-Front-Page/R6 -s 8192 -e 20
