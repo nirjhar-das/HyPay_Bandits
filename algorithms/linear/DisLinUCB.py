@@ -14,11 +14,13 @@ class DisLinUCB(Algorithm):
         self.sigma = sigma
         self.theta_hat_arr = []
         self.W_arr = []
+        self.W_arr_inv = []
         self.v_arr = []
         self.t_i_arr = []
         for i in range(self.L):
             self.theta_hat_arr.append(np.zeros((self.d + self.k,)))
             self.W_arr.append(self.lmbda * np.eye(self.d + self.k))
+            self.W_arr_inv.append((1.0 / self.lmbda) * np.eye(self.d + self.k))
             self.v_arr.append(np.zeros((self.d + self.k,)))
             self.t_i_arr.append(0)
         self.t = 0
@@ -41,7 +43,7 @@ class DisLinUCB(Algorithm):
         if a is None:
             a = self.arms[i]
         reward = np.dot(a, self.theta_hat_arr[i]) +\
-                    self.p_beta(i) * np.sqrt(np.dot(a, np.dot(np.linalg.inv(self.W_arr[i]), a)))
+                    self.p_beta(i) * np.sqrt(np.dot(a, np.dot(self.W_arr_inv[i], a)))
         return reward
 
     def next_action(self):
@@ -55,11 +57,12 @@ class DisLinUCB(Algorithm):
         return self.a_t
     
     def update(self, reward, regret, arm_set):
-        x_t_vec = self.arms[self.a_t].reshape(-1, 1)
-        self.W_arr[self.a_t] += x_t_vec @ x_t_vec.T
+        x_t_vec = self.arms[self.a_t]
+        self.W_arr[self.a_t] += np.outer(x_t_vec, x_t_vec)
+        x_W_inv = np.dot(self.W_arr_inv[self.a_t], x_t_vec)
+        self.W_arr_inv[self.a_t] -= np.outer(x_W_inv, x_W_inv) / (1 + np.dot(x_t_vec, x_W_inv))
         self.v_arr[self.a_t] += reward * self.arms[self.a_t]
-        self.theta_hat_arr[self.a_t] = np.dot(np.linalg.inv(self.W_arr[self.a_t]), \
-                                        self.v_arr[self.a_t])
+        self.theta_hat_arr[self.a_t] = np.dot(self.W_arr_inv[self.a_t], self.v_arr[self.a_t])
         super().update(reward, regret, arm_set)
         self.modify_arms()
         self.t += 1

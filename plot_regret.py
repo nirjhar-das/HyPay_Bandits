@@ -5,11 +5,11 @@ import argparse
 import matplotlib.pyplot as plt
 from utils import get_color
 
-def plot_time_vs_regret(folder, name):
+def plot_time_vs_regret(folder, name, id):
     
     for root, dirs, files in os.walk(folder):
         for file in files:
-            if not file.startswith(name):
+            if (not file.startswith(name)) or (f'Trial_{id}' not in file):
                 continue
             name_arr = file.split('_')
             df = pd.read_csv(os.path.join(root, file))
@@ -19,11 +19,35 @@ def plot_time_vs_regret(folder, name):
                 ax.plot(T_arr, df[col].cumsum(), label=col, color=get_color(col))
             ax.grid()
             ax.legend(fontsize=15)
-            ax.set_title(f'd1 = {int(name_arr[1])}, d2 = {int(name_arr[2])}, K = {int(name_arr[3])}', fontsize=20)
+            ax.set_title(f'$ d_1 $ = {int(name_arr[3])}, $ d_2 $ = {int(name_arr[4])}, K = {int(name_arr[5])}', fontsize=20)
             ax.set_xlabel('Time', size=20)
             ax.set_ylabel('Regret', size=20)
-            filename = f'Reg_vs_T_{int(name_arr[1])}_{int(name_arr[2])}_{int(name_arr[3])}.png'
+            filename = f'Reg_vs_T_{int(name_arr[3])}_{int(name_arr[4])}_{int(name_arr[5])}_{id}.png'
             plt.savefig(os.path.join(root, filename), dpi=200, format='png')
+            plt.close()
+
+def plot_time_vs_regret_avg(folder, name):
+    
+    for root, _, files in os.walk(folder):
+        for file in files:
+            if (not file.startswith(name)) or ('Trial' in file) or ('80000' not in file):
+                continue
+            name_arr = file.split('_')
+            df = pd.read_csv(os.path.join(root, file))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+            T_arr = np.arange(1, len(df[df.columns[0]])+1)
+            for col in df.columns:
+                if col == 'SupLinUCB':
+                    continue
+                ax.plot(T_arr, df[col].cumsum(), label=col, color=get_color(col))
+            ax.grid()
+            ax.legend(fontsize=15)
+            ax.set_title(f'$ d_1 $ = {int(name_arr[1])}, $ d_2 $ = {int(name_arr[2])}, K = {int(name_arr[3])}', fontsize=20)
+            ax.set_xlabel('Time', size=20)
+            ax.set_ylabel('Regret', size=20)
+            filename = f'Reg_vs_T_{int(name_arr[1])}_{int(name_arr[2])}_{int(name_arr[3])}_Avg_80k.png'
+            plt.savefig(os.path.join(root, filename), dpi=200, format='png')
+            plt.close()
 
 
 def plot_num_arms_vs_regret_single_trial(folder, name, id):
@@ -58,6 +82,7 @@ def plot_num_arms_vs_regret_single_trial(folder, name, id):
         ax.set_xlabel('Number of Arms')
         ax.set_ylabel('Total Regret')
         plt.savefig(os.path.join(folder, f'Reg_vs_L_bar_plot_Trial_{id}.png'), dpi=200, format='png')
+        plt.close()
 
 
 def plot_num_arms_vs_regret_combined(folder, name):
@@ -69,10 +94,10 @@ def plot_num_arms_vs_regret_combined(folder, name):
             if not file.startswith(name):
                 continue
             name_arr = file.split('_')
-            if name_arr[1] == '2' and name_arr[2] == '2':
+            if name_arr[1] == '5' and name_arr[2] == '5':
                 df = pd.read_csv(os.path.join(root, file))
-                if ('20' in file) or ('100' in file) or ('200' in file) or ('250' in file) or ('300' in file):
-                    ls = df.cumsum().iloc[10000 - 1]
+                if name_arr[3] in ['10', '50', '100', '200']:
+                    ls = df.cumsum().iloc[30000 - 1]
                 else:
                     ls = df.cumsum().iloc[-1]
                 idx.append(int(name_arr[3]))
@@ -91,6 +116,7 @@ def plot_num_arms_vs_regret_combined(folder, name):
         ax.set_xlabel('Number of Arms')
         ax.set_ylabel('Total Regret')
         plt.savefig(os.path.join(folder, 'Reg_vs_L_bar_plot.png'), dpi=200, format='png')
+        plt.close()
 
 
 if __name__ == '__main__':
@@ -99,7 +125,8 @@ if __name__ == '__main__':
     parser.add_argument('--output', '-o', type=str, default='./Results', help='Output folder to store')
     parser.add_argument('--trials', '-t', type=int, default=5, help='Number of trial files')
     args = parser.parse_args()
-    plot_num_arms_vs_regret_combined(args.output, args.name)
-    for i in range(args.trials):
-        plot_num_arms_vs_regret_single_trial(args.output, args.name, i+1)
-    #plot_time_vs_regret(args.output, args.name)
+    #plot_num_arms_vs_regret_combined(args.output, args.name)
+    plot_time_vs_regret_avg(args.output, args.name)
+    #for i in range(args.trials):
+    #     plot_num_arms_vs_regret_single_trial(args.output, args.name, i+1)
+    #    plot_time_vs_regret(args.output, args.name, i+1)

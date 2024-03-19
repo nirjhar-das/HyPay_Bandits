@@ -88,7 +88,7 @@ class SemiSyntheticEnv:
                 for name in files:
                     if '2009' in name:
                         self.file_names.append(os.path.join(root, name))
-            self.file_names = self.file_names[5:]
+            self.file_names = self.file_names[1:]
         self.num_arms = num_arms
 
     def process_line(self, line):

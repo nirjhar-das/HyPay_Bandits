@@ -4,7 +4,7 @@ import os
 from copy import deepcopy
 
 class HybridBandits:
-    def __init__(self, name=None, config=None, load=None, copy_env=None):
+    def __init__(self, name=None, config=None, load=None, copy_env=None, seed=None):
         if load is None and copy_env is None:
             self.name = name
             self.seed = config['seed']
@@ -28,8 +28,8 @@ class HybridBandits:
             self.best_arm, self.max_reward = self.get_best_arm()
         elif copy_env is not None:
             self.name = name
-            self.seed = copy_env.seed
-            self.rng = np.random.default_rng(copy_env.seed)
+            self.seed = copy_env.seed if seed is None else seed + copy_env.seed
+            self.rng = np.random.default_rng(self.seed)
             self.model_type = copy_env.model_type
             self.L = copy_env.L
             self.d = copy_env.d
