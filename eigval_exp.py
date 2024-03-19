@@ -82,15 +82,15 @@ def multi_bandit_simulation(n_trials, T, d1, d2, K, theta, beta):
     # fig2, ax2 = plt.subplots(2, 1, figsize=(12, 10))
     fig3, ax3 = plt.subplots(1, 1, figsize=(6, 5))
 
-    max_slope_1, min_slope_1 = 0.0, 1000.0
-    max_slope_2, min_slope_2 = 0.0, 1000.0
-    max_len_1_W = 0
-    max_slope_1_W, min_slope_1_W = 0.0, 1000.0
-    max_slope_2_W, min_slope_2_W = 0.0, 1000.0
-    max_len_2_W = 0
+    # max_slope_1, min_slope_1 = 0.0, 1000.0
+    # max_slope_2, min_slope_2 = 0.0, 1000.0
+    # max_len_1_W = 0
+    # max_slope_1_W, min_slope_1_W = 0.0, 1000.0
+    # max_slope_2_W, min_slope_2_W = 0.0, 1000.0
+    # max_len_2_W = 0
 
-    max_slope_3, min_slope_3 = 0.0, 1000.0
-    max_len_3_W = 0
+    # max_slope_3, min_slope_3 = 0.0, 1000.0
+    # max_len_3_W = 0
 
     x_ax_V = np.arange(1, T+2)
 
@@ -161,9 +161,9 @@ def multi_bandit_simulation(n_trials, T, d1, d2, K, theta, beta):
     fig3.suptitle('DisLinUCB')
 
     plt.draw()
-    fig1.savefig(f'./New_Result/HyLinUCB_EigVal_{T}.png', dpi=200)
-    fig2.savefig(f'./New_Result/LinUCB_EigVal_{T}.png', dpi=200)
-    fig3.savefig(f'./New_Result/DisLinUCB_EigVal_{T}.png', dpi=200)
+    fig1.savefig(f'./All_Sim_Final/HyLinUCB_EigVal_{T}.png', dpi=200)
+    fig2.savefig(f'./All_Sim_Final/LinUCB_EigVal_{T}.png', dpi=200)
+    fig3.savefig(f'./All_Sim_Final/DisLinUCB_EigVal_{T}.png', dpi=200)
 
 
 def plot_result(result_dict, T, K, n_trials):
