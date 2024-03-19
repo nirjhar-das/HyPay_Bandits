@@ -3,124 +3,177 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from algorithms.linear import HyLinUCB_Offline, LinUCB_Offline
+from multiprocessing.pool import Pool
+from algorithms.linear import HyLinUCB_Offline, LinUCB_Offline, DisLinUCB_Offline
 
-rng = np.random.default_rng(46568961)
+def generate_context(d_1, d_2, K, seed=0):
+    rng_new = np.random.default_rng(seed)
+    while(True):
+        arm_feat = [(rng_new.uniform(-1/np.sqrt(d_1), 1/np.sqrt(d_1), size=(d_1,)),\
+                    rng_new.uniform(-1/np.sqrt(d_2), 1/np.sqrt(d_2), size=(d_2,))) for _ in range(K)]
 
-def generate_context(d_1, d_2, K):
-    x_arr = [rng.uniform(-1/np.sqrt(d_1), 1/np.sqrt(d_1), size=(d_1,)) for _ in range(K)]
-    z_arr = [rng.uniform(-1/np.sqrt(d_2), 1/np.sqrt(d_2), size=(d_2,)) for _ in range(K)]
+        yield arm_feat
 
-    return x_arr, z_arr
-
-def simulate_bandit(T, n_samples, n_keep, d1, d2, K):
-    hylin = [HyLinUCB_Offline(d1, d2, K, 0.01, 1.0, 1.0, 1.0, 1.0, 0.01, 0.1) for _ in range(n_keep)]
-    lin = [LinUCB_Offline(d1, d2, K, 0.01, 1.0, 1.0, 1.0, 1.0, 0.01, 0.1) for _ in range(n_keep)]
-    theta = rng.uniform(-1.0 / np.sqrt(d1), 1.0 / np.sqrt(d1), size=((d1,)))
-    beta = [rng.uniform(-1.0 / np.sqrt(d2), 1.0 / np.sqrt(d2), size=((d2,))) for _ in range(K)]
-    eig_x_1 = np.zeros((n_keep, T))
-    eig_z_1 = np.zeros((n_keep, T))
-    eig_x_2 = np.zeros((n_keep, T))
-    eig_z_2 = np.zeros((n_keep, T))
-    fro_xz_1 = np.zeros((n_keep, T))
-    fro_xz_2 = np.zeros((n_keep, T))
-    eig_V_1 = np.zeros((T,))
-    eig_W_1 = [[] for _ in range(K)]
-    sing_B_1 = [[] for _ in range(K)]
-    eig_V_2 = np.zeros((T,))
-    eig_W_2 = [[] for _ in range(K)]
-    sing_B_2 = [[] for _ in range(K)]
-    xxT_1_1 = 0.1 * np.eye(d1)
-    xxT_2_1 = 0.1 * np.eye(d1)
-    zzT_1_1 = [0.1 * np.eye(d2) for _ in range(K)]
-    zzT_2_1 = [0.1 * np.eye(d2) for _ in range(K)]
-    xzT_1_1 = [np.zeros((d1, d2)) for _ in range(K)]
-    xzT_2_1 = [np.zeros((d1, d2)) for _ in range(K)]
-    for t in tqdm(range(T)):
-        keep_idx = rng.integers(n_samples, size=(n_keep,))
-        xxT_1 = [np.zeros((d1, d1)) for _ in range(n_keep)]
-        zzT_1 = [np.zeros((d2, d2)) for _ in range(n_keep)]
-        xzT_1 = [np.zeros((d1, d2)) for _ in range(n_keep)]
-        xxT_2 = [np.zeros((d1, d1)) for _ in range(n_keep)]
-        zzT_2 = [np.zeros((d2, d2)) for _ in range(n_keep)]
-        xzT_2 = [np.zeros((d1, d2)) for _ in range(n_keep)]
-        arms_keep = [None for _ in range(n_keep)]
-        r1 = [None for _ in range(n_keep)]
-        r2 = [None for _ in range(n_keep)]
-        for n in range(n_samples):
-            x_arr, z_arr = generate_context(d1, d2, K)
-            arm_feats = [(x, z) for x, z in zip(x_arr, z_arr)]
-            for k in range(n_keep):
-                a1 = lin[k].predict(arm_feats)
-                a2 = hylin[k].predict(arm_feats)
-                xxT_1[k] += np.outer(x_arr[a1], x_arr[a1])
-                zzT_1[k] += np.outer(z_arr[a1], z_arr[a1])
-                xzT_1[k] += np.outer(x_arr[a1], z_arr[a1])
-                xxT_2[k] += np.outer(x_arr[a2], x_arr[a2])
-                zzT_2[k] += np.outer(z_arr[a2], z_arr[a2])
-                xzT_2[k] += np.outer(x_arr[a2], z_arr[a2])
-                if n == keep_idx[k]:
-                    r1[k] = np.dot(x_arr[a1], theta) + np.dot(z_arr[a1], beta[a1]) + rng.normal(0.0, 0.01)
-                    r2[k] = np.dot(x_arr[a2], theta) + np.dot(z_arr[a2], beta[a2]) + rng.normal(0.0, 0.01)
-                    arms_keep[k] = arm_feats
+def simulate_bandit(T, d1, d2, K, theta, beta, idx):
+    hylin = HyLinUCB_Offline(d1, d2, K, 0.01, 1.0, 1.0, 1.0, 1.0, 0.01, 0.1)
+    lin = LinUCB_Offline(d1, d2, K, 0.01, 1.0, 1.0, 1.0, 1.0, 0.01, 0.1)
+    dislin = DisLinUCB_Offline(d1, d2, K, 0.01, 1.0, 1.0, 1.0, 1.0, 0.01, 0.1)
+    con_gen = generate_context(d1, d2, K, seed=idx)
+    rng_n = np.random.default_rng(idx + 478959)
+    xxT_dict = {'HyLinUCB': 0.1 * np.eye(d1), 'LinUCB': 0.1 * np.eye(d1)}
+    zzT_dict = {'HyLinUCB': [0.1 * np.eye(d2) for _ in range(K)], 'LinUCB': [0.1 * np.eye(d2) for _ in range(K)], 'DisLinUCB': [0.1 * np.eye(d1 + d2) for _ in range(K)]}
+    xzT_dict = {'HyLinUCB': [0.1 * np.zeros((d1, d2)) for _ in range(K)], 'LinUCB': [0.1 * np.zeros((d1, d2)) for _ in range(K)]}
+    V_eig_dict = {'HyLinUCB': [0.1], 'LinUCB': [0.1]}
+    W_eig_dict = {'HyLinUCB': [[0.1] for _ in range(K)], 'LinUCB': [[0.1] for _ in range(K)], 'DisLinUCB': [[0.1] for _ in range(K)]}
+    B_sing_dict = {'HyLinUCB': [[0.0] for _ in range(K)], 'LinUCB': [[0.0] for _ in range(K)]}
+    for t in tqdm(range(T), position=idx+1):
+        arm_feats = next(con_gen)
         
-        dum_zzT_1 = [np.zeros((d2, d2)) for _ in range(K)]
-        dum_zzT_2 = [np.zeros((d2, d2)) for _ in range(K)]
-        dum_xzT_1 = [np.zeros((d1, d2)) for _ in range(K)]
-        dum_xzT_2 = [np.zeros((d1, d2)) for _ in range(K)]
-        count_1 = [0 for _ in range(K)]
-        count_2 = [0 for _ in range(K)]
-        for k in range(n_keep):
-            eig_x_1[k, t] = np.linalg.eigvalsh(xxT_1[k] / n_samples)[0]
-            eig_x_2[k, t] = np.linalg.eigvalsh(xxT_2[k] / n_samples)[0]
-            eig_z_1[k, t] = np.linalg.eigvalsh(zzT_1[k] / n_samples)[0]
-            eig_z_2[k, t] = np.linalg.eigvalsh(zzT_2[k] / n_samples)[0]
-            fro_xz_1[k, t] = np.linalg.norm(xzT_1[k] / n_samples, ord='fro')
-            fro_xz_2[k, t] = np.linalg.norm(xzT_2[k] / n_samples, ord='fro')
-            a1, a2 = lin[k].predict(arms_keep[k]), hylin[k].predict(arms_keep[k])
-            count_1[a1] += 1
-            count_2[a2] += 1
-            xxT_1_1 += (np.outer(arms_keep[k][a1][0], arms_keep[k][a1][0]) / n_keep)
-            xxT_2_1 += (np.outer(arms_keep[k][a2][0], arms_keep[k][a2][0]) / n_keep)
-            dum_zzT_1[a1] += np.outer(arms_keep[k][a1][1], arms_keep[k][a1][1])
-            dum_zzT_2[a2] += np.outer(arms_keep[k][a2][1], arms_keep[k][a2][1])
-            dum_xzT_1[a1] += np.outer(arms_keep[k][a1][0], arms_keep[k][a1][1])
-            dum_xzT_2[a2] += np.outer(arms_keep[k][a2][0], arms_keep[k][a2][1])
-            lin[k].update(arms_keep[k], r1[k])
-            hylin[k].update(arms_keep[k], r2[k])
+        a1 = hylin.predict(arm_feats)
+        x, z = arm_feats[a1]
+        xxT_dict['HyLinUCB'] += np.outer(x, x)
+        zzT_dict['HyLinUCB'][a1] += np.outer(z, z)
+        xzT_dict['HyLinUCB'][a1] += np.outer(x, z)
+        V_eig_dict['HyLinUCB'].append(np.linalg.eigvalsh(xxT_dict['HyLinUCB'])[0])
+        W_eig_dict['HyLinUCB'][a1].append(np.linalg.eigvalsh(zzT_dict['HyLinUCB'][a1])[0])
+        B_sing_dict['HyLinUCB'][a1].append(np.linalg.norm(xzT_dict['HyLinUCB'][a1]))
+        r1 = np.dot(theta, x) + np.dot(beta[a1], z) + rng_n.normal(0.0, 0.01)
+        hylin.update(arm_feats, r1)
+
+        a2 = lin.predict(arm_feats)
+        x, z = arm_feats[a2]
+        xxT_dict['LinUCB'] += np.outer(x, x)
+        zzT_dict['LinUCB'][a2] += np.outer(z, z)
+        xzT_dict['LinUCB'][a2] += np.outer(x, z)
+        V_eig_dict['LinUCB'].append(np.linalg.eigvalsh(xxT_dict['LinUCB'])[0])
+        W_eig_dict['LinUCB'][a2].append(np.linalg.eigvalsh(zzT_dict['LinUCB'][a2])[0])
+        B_sing_dict['LinUCB'][a2].append(np.linalg.norm(xzT_dict['LinUCB'][a2]))
+        r2 = np.dot(theta, x) + np.dot(beta[a2], z) + rng_n.normal(0.0, 0.01)
+        hylin.update(arm_feats, r2)
+
+        a3 = dislin.predict(arm_feats)
+        x, z = arm_feats[a3]
+        x_tilde = np.concatenate((x, z))
+        zzT_dict['DisLinUCB'][a3] += np.outer(x_tilde, x_tilde)
+        W_eig_dict['DisLinUCB'][a3].append(np.linalg.eigvalsh(zzT_dict['HyLinUCB'][a3])[0])
+        r3 = np.dot(theta, x) + np.dot(beta[a3], z) + rng_n.normal(0.0, 0.01)
+        hylin.update(arm_feats, r3)
+
+
+
         
-        eig_V_1[t] = np.linalg.eigvalsh(xxT_1_1)[0]
-        eig_V_2[t] = np.linalg.eigvalsh(xxT_2_1)[0]
-        for i in range(K):
-            if count_1[i] != 0:
-                zzT_1_1[i] += (dum_zzT_1[i] / count_1[i])
-                eig_W_1[i].append(np.linalg.eigvalsh(zzT_1_1[i])[0])
-                xzT_1_1[i] += (dum_xzT_1[i] / count_1[i])
-                sing_B_1[i].append(np.linalg.norm(xzT_1_1[i], ord=2))
-            if count_2[i] != 0:
-                zzT_2_1[i] += (dum_zzT_2[i] / count_2[i])
-                eig_W_2[i].append(np.linalg.eigvalsh(zzT_2_1[i])[0])
-                xzT_2_1[i] += (dum_xzT_2[i] / count_2[i])
-                sing_B_2[i].append(np.linalg.norm(xzT_2_1[i], ord=2))
-    
-    result_dict = {'HyLinUCB': {'per_t_eig_x': eig_x_2, 'per_t_eig_z': eig_z_2,\
-                                'per_t_fro_xz': fro_xz_2, 'eig_V': eig_V_2, 'eig_W_arr': eig_W_2,\
-                                'sing_B_arr': sing_B_2},\
-                    'LinUCB': {'per_t_eig_x': eig_x_1, 'per_t_eig_z': eig_z_1,\
-                                'per_t_fro_xz': fro_xz_1, 'eig_V': eig_V_1, 'eig_W_arr': eig_W_1,\
-                                'sing_B_arr': sing_B_1}}
-    
-    return result_dict
+    return V_eig_dict, W_eig_dict, B_sing_dict
 
 
-def plot_result(result_dict, T, K, n_keep):
+def multi_bandit_simulation(n_trials, T, d1, d2, K, theta, beta):
+    args_arr = []
+    for i in range(n_trials):
+        args_arr.append((T, d1, d2, K, theta, beta, i))
+    with Pool(processes=4) as p:
+        result = p.starmap(simulate_bandit, args_arr)
+    
+    fig1 = plt.figure(layout='tight')
+    fig2 = plt.figure(layout='tight')
+    gs1 = fig1.add_gridspec(2, 2)
+    gs2 = fig1.add_gridspec(2, 2)
+    ax1 = [fig1.add_subplot(gs1[0, :]), fig1.add_subplot(gs1[1, 0]), fig1.add_subplot(gs1[1, 1])]
+    ax2 = [fig2.add_subplot(gs2[0, :]), fig2.add_subplot(gs2[1, 0]), fig2.add_subplot(gs2[1, 1])]
+    # fig1, ax1 = plt.subplots(2, 1, figsize=(12, 10))
+    # fig2, ax2 = plt.subplots(2, 1, figsize=(12, 10))
+    fig3, ax3 = plt.subplots(1, 1, figsize=(6, 5))
+
+    max_slope_1, min_slope_1 = 0.0, 1000.0
+    max_slope_2, min_slope_2 = 0.0, 1000.0
+    max_len_1_W = 0
+    max_slope_1_W, min_slope_1_W = 0.0, 1000.0
+    max_slope_2_W, min_slope_2_W = 0.0, 1000.0
+    max_len_2_W = 0
+
+    max_slope_3, min_slope_3 = 0.0, 1000.0
+    max_len_3_W = 0
+
+    x_ax_V = np.arange(1, T+2)
+
+    for i in range(n_trials):
+        V_eig_dict, W_eig_dict, B_sing_dict = result[i]
+
+        ax1[0].plot(x_ax_V, V_eig_dict['HyLinUCB'], alpha=0.3, color='red')
+        # max_slope_1 = max(max_slope_1, np.max(V_eig_dict['HyLinUCB'] / x_ax_V))
+        # min_slope_1 = min(min_slope_1, np.min(V_eig_dict['HyLinUCB'] / x_ax_V))
+        for j in range(K):
+            ax1[1].plot(np.arange(1, len(W_eig_dict['HyLinUCB'][j]) + 1), W_eig_dict['HyLinUCB'][j], alpha=0.3, color='blue')
+            # max_slope_1_W = max(max_slope_1_W, np.max(W_eig_dict['HyLinUCB'][j] / np.arange(1, len(W_eig_dict['HyLinUCB'][j]) + 1)))
+            # min_slope_1_W = min(min_slope_1_W, np.min(W_eig_dict['HyLinUCB'][j] / np.arange(1, len(W_eig_dict['HyLinUCB'][j]) + 1)))
+            # max_len_1_W = max(max_len_1_W, len(W_eig_dict['HyLinUCB'][j]))
+
+            ax1[2].plot(np.arange(1, len(B_sing_dict['HyLinUCB'][j]) + 1), B_sing_dict['HyLinUCB'][j], alpha=0.3, color='blue')
+        
+        ax2[0].plot(x_ax_V, V_eig_dict['LinUCB'], alpha=0.3, color='red')
+        # max_slope_2 = max(max_slope_1, np.max(V_eig_dict['LinUCB'] / x_ax_V))
+        # min_slope_2 = min(min_slope_1, np.min(V_eig_dict['LinUCB'] / x_ax_V))
+        for j in range(K):
+            ax2[1].plot(np.arange(1, len(W_eig_dict['LinUCB'][j]) + 1), W_eig_dict['LinUCB'][j], alpha=0.3, color='blue')
+            # max_slope_2_W = max(max_slope_2_W, np.max(W_eig_dict['LinUCB'][j] / np.arange(1, len(W_eig_dict['LinUCB'][j]) + 1)))
+            # min_slope_2_W = min(min_slope_2_W, np.min(W_eig_dict['LinUCB'][j] / np.arange(1, len(W_eig_dict['LinUCB'][j]) + 1)))
+            # max_len_2_W = max(max_len_2_W, len(W_eig_dict['LinUCB'][j]))
+
+            ax2[2].plot(np.arange(1, len(B_sing_dict['LinUCB'][j]) + 1), B_sing_dict['LinUCB'][j], alpha=0.3, color='blue')
+
+        for j in range(K):
+            ax3.plot(np.arange(1, len(W_eig_dict['DisLinUCB'][j]) + 1), W_eig_dict['DisLinUCB'][j], alpha=0.3, color='blue')
+            # max_slope_3 = max(max_slope_1, np.max(W_eig_dict['DisLinUCB'][j] / np.arange(1, len(W_eig_dict['DisLinUCB'][j]) + 1)))
+            # min_slope_3 = min(max_slope_1, np.min(W_eig_dict['DisLinUCB'][j] / np.arange(1, len(W_eig_dict['DisLinUCB'][j]) + 1)))
+            # max_len_3_W = max(max_len_3_W, len(W_eig_dict['DisLinUCB'][j]))
+
+
+    # ax1[0].fill_between(x_ax_V, max_slope_1 * x_ax_V, min_slope_1 * x_ax_V, alpha = 0.1, color='red')
+    # ax1[1].fill_between(np.arange(1, max_len_1_W + 1), max_slope_1_W * np.arange(1, max_len_1_W + 1), min_slope_1_W * np.arange(1, max_len_1_W + 1), alpha = 0.1, color='blue')
+    # ax2[0].fill_between(x_ax_V, max_slope_2 * x_ax_V, min_slope_2 * x_ax_V, alpha = 0.1, color='red')
+    # ax2[1].fill_between(np.arange(1, max_len_2_W + 1), max_slope_2_W * np.arange(1, max_len_2_W + 1), min_slope_2_W * np.arange(1, max_len_2_W + 1), alpha = 0.1, color='blue')
+    # ax3.fill_between(np.arange(1, max_len_3_W + 1), max_slope_3 * np.arange(1, max_len_3_W + 1), min_slope_3 * np.arange(1, max_len_3_W + 1), alpha = 0.1, color='blue')
+
+    ax1[0].set_xlabel('Time')
+    ax1[0].set_ylabel('$ \lambda_{min} (V_t) $')
+    ax1[0].grid()
+    ax1[1].set_xlabel('Time')
+    ax1[1].set_ylabel('$ \lambda_{min} (W_{i,t}) $')
+    ax1[1].grid()
+    ax1[2].set_xlabel('Time')
+    ax1[2].set_ylabel('$ \sigma_{max} (B_{i,t}) $')
+    ax1[2].grid()
+    fig1.suptitle('HyLinUCB')
+
+
+    ax2[0].set_xlabel('Time')
+    ax2[0].set_ylabel('$ \lambda_{min} (V_t) $')
+    ax2[0].grid()
+    ax2[1].set_xlabel('Time')
+    ax2[1].set_ylabel('$ \lambda_{min} (W_{i,t}) $')
+    ax2[1].grid()
+    ax2[2].set_xlabel('Time')
+    ax2[2].set_ylabel('$ \sigma_{max} (B_{i,t}) $')
+    ax2[2].grid()
+    fig2.suptitle('LinUCB')
+
+    ax3.set_xlabel('Time')
+    ax3.set_ylabel('$ \lambda_{min} (W_{i,t}) $')
+    ax3.grid()
+    fig3.suptitle('DisLinUCB')
+
+    plt.draw()
+    fig1.savefig(f'./New_Result/HyLinUCB_EigVal_{T}.png', dpi=200)
+    fig2.savefig(f'./New_Result/LinUCB_EigVal_{T}.png', dpi=200)
+    fig3.savefig(f'./New_Result/DisLinUCB_EigVal_{T}.png', dpi=200)
+
+
+def plot_result(result_dict, T, K, n_trials):
     x_arr = np.arange(1, T+1)
     viridis = cm.get_cmap('viridis', 3*K)
     colors = viridis(np.linspace(0.0, 1.0, 3*K))
     fig, ax = plt.subplots(3, 2, figsize=(25, 40))
     d1 = result_dict['HyLinUCB']
     d2 = result_dict['LinUCB']
-    for i in range(n_keep):
+    for i in range(n_trials):
         if i == 0:
             ax[0][0].plot(x_arr, d1['per_t_eig_x'][i], color='blue', marker='.', label='HyLinUCB')
             ax[0][0].plot(x_arr, d2['per_t_eig_x'][i], color='red', marker='.', label='LinUCB')
@@ -177,5 +230,12 @@ def plot_result(result_dict, T, K, n_keep):
 
 
 if __name__ == '__main__':
-    result = simulate_bandit(2500, 50, 20, 4, 2, 20)
-    plot_result(result, 2500, 10, 20)
+    rng = np.random.default_rng(46568961)
+    d1, d2, K = 10, 10, 25
+    T = 5000
+    n_trials = 100
+    theta = rng.uniform(-1.0 / np.sqrt(d1), 1.0 / np.sqrt(d1), size=((d1,)))
+    beta = [rng.uniform(-1.0 / np.sqrt(d2), 1.0 / np.sqrt(d2), size=((d2,))) for _ in range(K)]
+
+    multi_bandit_simulation(n_trials, T, d1, d2, K, theta, beta)
+    #plot_result(result, T, K, n_trials)
