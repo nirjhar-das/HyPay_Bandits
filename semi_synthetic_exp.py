@@ -10,7 +10,6 @@ from torch import nn
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils import get_color
-#from multiprocessing import Pool
 from concurrent.futures import ProcessPoolExecutor as Pool
 
 class YahooDataset(IterableDataset):
@@ -186,7 +185,7 @@ def train_linear_regression(folder, name='Yahoo', n_epochs=10, max_samples_per_e
     return model
 
 def prepare_algo_arr(algo_dict, T, d, k, L, delta=0.01):
-    from algorithms.linear import DisLinUCB_Offline, HyLinUCB_Offline, OFUL_Offline, MHyLinUCB_Offline, LinUCB_Offline, HyRan_Offline #, SupLinUCB_Offline
+    from algorithms.linear import DisLinUCB_Offline, HyLinUCB_Offline, OFUL_Offline, LinUCB_Offline, HyRan_Offline #, SupLinUCB_Offline
     algo_arr = []
     for key in algo_dict.keys():
         if key == 'DisLinUCB':
@@ -198,9 +197,6 @@ def prepare_algo_arr(algo_dict, T, d, k, L, delta=0.01):
         elif key == 'OFUL':
             lmbda = algo_dict[key]['lambda']
             algo_arr.append(OFUL_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.01, lmbda))
-        elif key == 'MHyLinUCB':
-            lmbda = algo_dict[key]['lambda']
-            algo_arr.append(MHyLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.01, lmbda))
         elif key == 'LinUCB':
             lmbda = algo_dict[key]['lambda']
             algo_arr.append(LinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.01, lmbda))
@@ -246,10 +242,6 @@ def run_bandit_simulation(folder, trial, T, model, name='Yahoo', output='./Resul
                 alg.update(data, noisy_rewards[i], algo_regret_arr[i])
                 all_regrets[alg.name].append(algo_regret_arr[i])
             t += 1
-            # if (t % 1000) == 0 and trial == 0:
-            #     for ag in algo_arr:
-            #         if ag.name != 'DisLinUCB':
-            #             print(np.linalg.norm(model.params.weight.detach().cpu().numpy() - np.concatenate([ag.theta_hat] + ag.beta_hat_arr)))
             if t == T:
                 break
         
@@ -307,8 +299,6 @@ if __name__=='__main__':
                 model = LinearRegression(d, k, L)
                 model = torch.load(os.path.join(args.output, f'lin_reg_model_{d}_{k}_{L}.pt'))
                 model.eval()
-                # if i == 0:
-                #     print(model.params.weight)
                 models.append(model) 
             print('Model loaded')
         else:
@@ -339,7 +329,3 @@ if __name__=='__main__':
         total_dict[k] /= args.num_trials
     
     plot_regret(total_dict, args.name, args.output)
-
-
-
-#python semi_synthetic_exp.py -T 1000 -o New_Result -t 4 -z ./Dataset/Yahoo-Front-Page/R6 -s 8192 -e 20

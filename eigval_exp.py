@@ -1,4 +1,3 @@
-import os
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -161,72 +160,10 @@ def multi_bandit_simulation(n_trials, T, d1, d2, K, theta, beta):
     fig3.suptitle('DisLinUCB')
 
     plt.draw()
-    fig1.savefig(f'./All_Sim_Final/HyLinUCB_EigVal_{T}.png', dpi=200)
-    fig2.savefig(f'./All_Sim_Final/LinUCB_EigVal_{T}.png', dpi=200)
-    fig3.savefig(f'./All_Sim_Final/DisLinUCB_EigVal_{T}.png', dpi=200)
+    fig1.savefig(f'./Results/HyLinUCB_EigVal_{T}.png', dpi=200)
+    fig2.savefig(f'./Results/LinUCB_EigVal_{T}.png', dpi=200)
+    fig3.savefig(f'./Results/DisLinUCB_EigVal_{T}.png', dpi=200)
 
-
-def plot_result(result_dict, T, K, n_trials):
-    x_arr = np.arange(1, T+1)
-    viridis = cm.get_cmap('viridis', 3*K)
-    colors = viridis(np.linspace(0.0, 1.0, 3*K))
-    fig, ax = plt.subplots(3, 2, figsize=(25, 40))
-    d1 = result_dict['HyLinUCB']
-    d2 = result_dict['LinUCB']
-    for i in range(n_trials):
-        if i == 0:
-            ax[0][0].plot(x_arr, d1['per_t_eig_x'][i], color='blue', marker='.', label='HyLinUCB')
-            ax[0][0].plot(x_arr, d2['per_t_eig_x'][i], color='red', marker='.', label='LinUCB')
-            ax[0][1].plot(x_arr, d1['per_t_eig_z'][i], color='blue', marker='.', label='HyLinUCB')
-            ax[0][1].plot(x_arr, d2['per_t_eig_z'][i], color='red', marker='.', label='LinUCB')
-            ax[1][0].plot(x_arr, d1['per_t_fro_xz'][i], color='blue', marker='.', label='HyLinUCB')
-            ax[1][0].plot(x_arr, d2['per_t_fro_xz'][i], color='red', marker='.', label='LinUCB')            
-        else:
-            ax[0][0].plot(x_arr, d1['per_t_eig_x'][i], color='blue', marker='.')
-            ax[0][0].plot(x_arr, d2['per_t_eig_x'][i], color='blue', marker='.')
-            ax[0][1].plot(x_arr, d1['per_t_eig_z'][i], color='blue', marker='.')
-            ax[0][1].plot(x_arr, d2['per_t_eig_z'][i], color='red', marker='.')
-            ax[1][0].plot(x_arr, d1['per_t_fro_xz'][i], color='blue', marker='.')
-            ax[1][0].plot(x_arr, d2['per_t_fro_xz'][i], color='red', marker='.')
-
-    for j in range(K):
-        ax[1][1].plot(x_arr, d1['eig_V'], color=colors[j], marker='.', label='HyLinUCB')
-        ax[1][1].plot(x_arr, d2['eig_V'], color=colors[j + K], marker='.', label='LinUCB')
-        ax[2][0].plot(np.arange(1, len(d1['eig_W_arr'][j]) + 1), d1['eig_W_arr'][j], color=colors[j], marker='.', label='HyLinUCB')
-        ax[2][0].plot(np.arange(1, len(d2['eig_W_arr'][j]) + 1), d2['eig_W_arr'][j], color=colors[j + 2*K], marker='.', label='LinUCB')
-        ax[2][1].plot(np.arange(1, len(d1['sing_B_arr'][j]) + 1), d1['sing_B_arr'][j], color=colors[j], marker='.', label='HyLinUCB')
-        ax[2][1].plot(np.arange(1, len(d2['sing_B_arr'][j]) + 1), d2['sing_B_arr'][j], color=colors[j + 2*K], marker='.', label='LinUCB')
-
-    ax[0][0].set_title('Min eigval of E[x_t x_t^T]')
-    ax[0][0].set_ylabel('Value')
-    ax[0][0].set_xlabel('Time')
-
-    ax[0][1].set_title('Min eigval of E[z_t z_t^T]')
-    ax[0][1].set_ylabel('Value')
-    ax[0][1].set_xlabel('Time')
-
-    ax[1][0].set_title('Frob norm of E[x_t z_t^T]')
-    ax[1][0].set_ylabel('Value')
-    ax[1][0].set_xlabel('Time')
-
-    ax[1][1].set_title('Avg min eigval of V_t')
-    ax[1][1].set_ylabel('Value')
-    ax[1][1].set_xlabel('Time')
-
-    ax[2][0].set_title('Avg min eigval of W_{i,t}')
-    ax[2][0].set_ylabel('Value')
-    ax[2][0].set_xlabel('Time')
-
-    ax[2][1].set_title('Avg max sing. val. of B_{i,t}')
-    ax[2][1].set_ylabel('Value')
-    ax[2][1].set_xlabel('Time')
-
-    for i in range(3):
-        for j in range(2):
-            ax[i][j].legend()
-            ax[i][j].grid()
-    
-    plt.savefig(os.path.join('./New_Result/Eigenvalue_Simulation.png'), dpi=200)
 
 
 if __name__ == '__main__':
@@ -238,4 +175,3 @@ if __name__ == '__main__':
     beta = [rng.uniform(-1.0 / np.sqrt(d2), 1.0 / np.sqrt(d2), size=((d2,))) for _ in range(K)]
 
     multi_bandit_simulation(n_trials, T, d1, d2, K, theta, beta)
-    #plot_result(result, T, K, n_trials)

@@ -6,8 +6,8 @@ from tqdm import tqdm
 from multiprocessing import Pool
 
 from environment import HybridBandits
-from algorithms.linear import DisLinUCB, LinUCB, OFUL, MHyLinUCB, SupLinUCB, HyLinUCB, HyRan
-#from algorithms.logistic import HyEcoLog, DisEcoLog
+from algorithms.linear import DisLinUCB, LinUCB, OFUL, SupLinUCB, HyLinUCB, HyRan
+
 
 def simulate_linear(env, algo_arr, T, i):
     for t in tqdm(range(T), position=i):
@@ -19,16 +19,6 @@ def simulate_linear(env, algo_arr, T, i):
         for i, algo in enumerate(algo_arr):
             algo.update(rewards_t[i], regrets_t[i], action_set_t)
     return algo_arr
-
-def simulate_logistic(env, algo_arr, T):
-    for t in tqdm(range(T)):
-        a_t = []
-        for algo in algo_arr:
-            a = algo.next_action()
-            a_t.append(a)
-        rewards_t, regrets_t, action_set_t = env.step(a_t)
-        for i, algo in enumerate(algo_arr):
-            algo.update(rewards_t[i], regrets_t[i], action_set_t)
 
 
 def multi_simulation_linear(num_trials, algo_dict, env:HybridBandits, delta:float, T:int):
@@ -51,9 +41,6 @@ def multi_simulation_linear(num_trials, algo_dict, env:HybridBandits, delta:floa
             elif k == 'HyLinUCB':
                 lmbda = algo_dict[k]['lambda']
                 algo_arr.append(HyLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda))
-            elif k == 'MHyLinUCB':
-                lmbda = algo_dict[k]['lambda']
-                algo_arr.append(MHyLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda))
             elif k == 'SupLinUCB':
                 lmbda = algo_dict[k]['lambda']
                 algo_arr.append(SupLinUCB(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, env.sigma, lmbda, T))
@@ -71,29 +58,6 @@ def multi_simulation_linear(num_trials, algo_dict, env:HybridBandits, delta:floa
             all_regrets[j][i] += np.array(algo_arr_val[j].regrets)
     return all_rewards, all_regrets
 
-def multi_simulation_logistic(num_trials, algo_dict, env:HybridBandits, delta:float, T:int):
-    all_rewards = [np.zeros((num_trials, T)) for _ in range(len(algo_dict.keys()))]
-    all_regrets = [np.zeros((num_trials, T)) for _ in range(len(algo_dict.keys()))]
-    for i in range(num_trials):
-        algo_arr = []
-        for k in algo_dict.keys():
-            if k == 'DisEcoLog':
-                lmbda = algo_dict[k]['lambda']
-                algo_arr.append(DisEcoLog(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, lmbda, env.kappa))
-            elif k == 'HyEcoLog':
-                lmbda = algo_dict[k]['lambda']
-                algo_arr.append(HyEcoLog(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, lmbda, env.kappa))
-            elif k == 'MHyEcoLog':
-                lmbda = algo_dict[k]['lambda']
-                algo_arr.append(HyEcoLog(env.get_first_action_set(), delta, env.M, env.N, env.S1, env.S2, lmbda, env.kappa))
-        print('Simulating Trial', i+1)
-        simulate_logistic(env, algo_arr, T)
-        env.reset()
-        for j in range(len(algo_arr)):
-            all_rewards[j][i] += np.array(algo_arr[j].rewards)
-            all_regrets[j][i] += np.array(algo_arr[j].regrets)
-    return all_rewards, all_regrets
-
 def all_simulations(d, k, L, T, name, model_type, num_trials, num_envs, folder, seed=194821263):
     rng = np.random.default_rng(seed)
     config = {}
@@ -108,7 +72,7 @@ def all_simulations(d, k, L, T, name, model_type, num_trials, num_envs, folder, 
     config['z_norm'] = 1.0                  # Max norm of z
     config['subgaussian'] = 0.01             # Subgaussianity of noise
     delta = 0.01
-    # if (d == 100 and k == 10 and L == 25) or (d == 10 and k == 100 and L == 25):
+    
     if (d == 40 and k == 5 and L == 25) or (d == 5 and k == 40 and L == 25):
         all_rewards = [np.zeros((T,)) for _ in range(len(['HyLinUCB', 'DisLinUCB', 'LinUCB', 'HyRan', 'SupLinUCB']))]
         all_regrets = [np.zeros((T,)) for _ in range(len(['HyLinUCB', 'DisLinUCB', 'LinUCB', 'HyRan', 'SupLinUCB']))]
@@ -124,7 +88,6 @@ def all_simulations(d, k, L, T, name, model_type, num_trials, num_envs, folder, 
         # Name of the simulation
         env = HybridBandits(name, config)
         if model_type ==  'Linear':
-            # if (d == 100 and k == 10 and L == 25) or (d == 10 and k == 100 and L == 25):
             if (d == 40 and k == 5 and L == 25) or (d == 5 and k == 40 and L == 25):
                 algo_dict = {'HyLinUCB': {'lambda': 0.1},
                         'LinUCB': {'lambda': 0.1},
@@ -136,18 +99,13 @@ def all_simulations(d, k, L, T, name, model_type, num_trials, num_envs, folder, 
                             'LinUCB': {'lambda': 0.1},
                             'DisLinUCB': {'lambda': 0.1},
                             #'SupLinUCB': {'lambda': 0.1},
-                            'HyRan': {'p': 0.5}}
+                            'HyRan': {'lambda': 1.0, 'p': 0.5}}
             rewards, regrets = multi_simulation_linear(num_trials, algo_dict, env, delta, T)
             regrets_dict = {k2: np.sum(regrets[i], axis=0) / num_trials for i, k2 in enumerate(algo_dict.keys())}
             df = pd.DataFrame(data=regrets_dict)
             filename = f'{name}_Trial_{i+1}_{d}_{k}_{L}_{T}_{model_type}.csv'
             df.to_csv(os.path.join(folder, filename), index=False)
 
-        elif model_type == 'Logistic':
-            algo_dict = {'HyEcoLog': {'lambda': 1.0},
-                        'DisEcoLog': {'lambda': 1.0},
-                        'MHyEcoLog': {'lambda': 1.0}}
-            rewards, regrets = multi_simulation_logistic(num_trials, algo_dict, env, delta, T)
         for j in range(len(algo_dict.keys())):
             for k1 in range(num_trials):
                 all_rewards[j] += rewards[j][k1]
@@ -172,36 +130,16 @@ if __name__=='__main__':
     if not os.path.exists(args.output):
         os.mkdir(args.output)
     if args.model_type == 'Linear':
-        # d_arr = [10, 100]
         d_arr = [5, 40]
         k_arr = [40, 5]
-        #k_arr  = [100, 10]
-        L_arr = [25] + [300, 400, 500, 600, 700, 800]
+        L_arr = [25] + [10, 50, 100, 200, 300, 400]
         T = 30000
         for k in k_arr:
             for d in d_arr:
                 for  L in L_arr:
-                    #if(d == 10 and k == 100 and L == 25):
                     if(d == 5 and k == 40 and L == 25):
                         all_simulations(d, k, L, 80000, args.name, 'Linear', 5, 5, args.output)
                     elif(d == 40 and k == 5 and L == 25):
                         all_simulations(d, k, L, 80000, args.name, 'Linear', 5, 5, args.output)
                     elif(d == 5 and k == 5):
-                        continue
                         all_simulations(d, k, L, T, args.name, 'Linear', 5, 5, args.output)
-                    # elif(d == 2 and k == 2 and L != 25):
-                    #     all_simulations(d, k, L, T, args.name, 'Linear', 2, 2, args.output)
-    elif args.model_type == 'Logistic':
-        T = 2000
-        d_arr = [0, 3, 10, 16]
-        k_arr = [0, 3, 5]
-        L_arr = [10, 20]
-        for L in L_arr:
-            for  d in d_arr:
-                for  k in k_arr:
-                    if(((d == 0) and (k != 6)  and (L != 20)) or ((d != 10) and (k == 0) and (L != 20))):
-                        continue
-                    all_simulations(d, k, L, T, 'Logistic', 5, 5)
-
-
-# python all_simulations.py -o ./All_Sim_Final -n Final

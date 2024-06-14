@@ -6,9 +6,6 @@ from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 import argparse
 from multiprocessing.pool import Pool
-import multiprocessing
-import threading
-import time
 
 
 class OffEval:
@@ -149,7 +146,7 @@ def offline_simulator(alg, env, max_time, id, folder, name):
 
 
 def prepare_algo_arr(algo_dict, T, d, k, L, delta=0.001):
-    from algorithms.linear import DisLinUCB_Offline, HyLinUCB_Offline, OFUL_Offline, MHyLinUCB_Offline#, SupLinUCB_Offline
+    from algorithms.linear import DisLinUCB_Offline, HyLinUCB_Offline, OFUL_Offline, LinUCB_Offline #, SupLinUCB_Offline
     algo_arr = []
     for key in algo_dict.keys():
         if key == 'DisLinUCB':
@@ -157,13 +154,13 @@ def prepare_algo_arr(algo_dict, T, d, k, L, delta=0.001):
             algo_arr.append(DisLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.25, lmbda))
         elif key == 'LinUCB':
             lmbda = algo_dict[key]['lambda']
-            algo_arr.append(HyLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.25, lmbda))
+            algo_arr.append(LinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.25, lmbda))
         elif key == 'OFUL':
             lmbda = algo_dict[key]['lambda']
             algo_arr.append(OFUL_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.25, lmbda))
-        elif key == 'MHyLinUCB':
+        elif key == 'HyLinUCB':
             lmbda = algo_dict[key]['lambda']
-            algo_arr.append(MHyLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.25, lmbda))
+            algo_arr.append(HyLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.25, lmbda))
         # elif key == 'SupLinUCB':
         #     lmbda = algo_dict[key]['lambda']
         #     algo_arr.append(SupLinUCB_Offline(d, k, L, delta, 2.0, 1.0, 2.0, 1.0, 0.25, lmbda, T))
@@ -196,8 +193,7 @@ def main(name, zipfolder, num_arms, timesteps, model, output):
         if name == 'Yahoo':
             d, k, L = 36, 6, int(num_arms)
         if model ==  'Linear':
-            algo_dict = {'MHyLinUCB': {'lambda': 0.01},
-                        'LinUCB': {'lambda': 0.01},
+            algo_dict = {'LinUCB': {'lambda': 0.01},
                         'DisLinUCB': {'lambda': 0.01},
                         'HyLinUCB': {'lambda': 0.01}}
         algo_arr = prepare_algo_arr(algo_dict, timesteps, d, k, L, delta=0.001)
@@ -221,10 +217,6 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output', type=str, help='output folder path', default='./Results')
     args = parser.parse_args()
     main(args.name, args.zipfolder, args.num_arms, args.timesteps, args.model, args.output)
-    # elif args.model == 'Logistic':
-    #     algo_dict = {'HyEcoLog': {'lambda': 1.0},
-    #                 'DisEcoLog': {'lambda': 1.0},
-    #                 'MHyEcoLog': {'lambda': 1.0}}
 
 
 

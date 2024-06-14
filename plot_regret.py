@@ -16,6 +16,8 @@ def plot_time_vs_regret(folder, name, id):
             fig, ax = plt.subplots(1, 1, figsize=(10, 6))
             T_arr = np.arange(1, len(df[df.columns[0]])+1)
             for col in df.columns:
+                if col == 'SupLinUCB': # SupLinUCB not plotted
+                    continue
                 ax.plot(T_arr, df[col].cumsum(), label=col, color=get_color(col))
             ax.grid()
             ax.legend(fontsize=15)
@@ -37,7 +39,7 @@ def plot_time_vs_regret_avg(folder, name):
             fig, ax = plt.subplots(1, 1, figsize=(10, 6))
             T_arr = np.arange(1, len(df[df.columns[0]])+1)
             for col in df.columns:
-                if col == 'SupLinUCB':
+                if col == 'SupLinUCB': # SupLinUCB not plotted
                     continue
                 ax.plot(T_arr, df[col].cumsum(), label=col, color=get_color(col))
             ax.grid()
@@ -59,11 +61,11 @@ def plot_num_arms_vs_regret_single_trial(folder, name, id):
             if (not file.startswith(name)) or (f'Trial_{id}' not in file):
                 continue
             name_arr = file.split('_')
-            if name_arr[3] == '2' and name_arr[4] == '2':
+            if name_arr[3] == '5' and name_arr[4] == '5':
                 df = pd.read_csv(os.path.join(root, file))
                 print(id, os.path.join(root, file))
-                if ('20' in file) or ('100' in file) or ('200' in file) or ('250' in file) or ('300' in file):
-                    ls = df.cumsum().iloc[10000 - 1]
+                if name_arr[5] in ['10', '25', '50', '100', '200', '300', '400']:
+                    ls = df.cumsum().iloc[30000 - 1]
                 else:
                     ls = df.cumsum().iloc[-1]
                 idx.append(int(name_arr[5]))
@@ -96,7 +98,7 @@ def plot_num_arms_vs_regret_combined(folder, name):
             name_arr = file.split('_')
             if name_arr[1] == '5' and name_arr[2] == '5':
                 df = pd.read_csv(os.path.join(root, file))
-                if name_arr[3] in ['10', '50', '100', '200']:
+                if name_arr[3] in ['10', '25', '50', '100', '200', '300', '400']:
                     ls = df.cumsum().iloc[30000 - 1]
                 else:
                     ls = df.cumsum().iloc[-1]
@@ -125,8 +127,8 @@ if __name__ == '__main__':
     parser.add_argument('--output', '-o', type=str, default='./Results', help='Output folder to store')
     parser.add_argument('--trials', '-t', type=int, default=5, help='Number of trial files')
     args = parser.parse_args()
-    #plot_num_arms_vs_regret_combined(args.output, args.name)
+    plot_num_arms_vs_regret_combined(args.output, args.name)
     plot_time_vs_regret_avg(args.output, args.name)
-    #for i in range(args.trials):
-    #     plot_num_arms_vs_regret_single_trial(args.output, args.name, i+1)
-    #    plot_time_vs_regret(args.output, args.name, i+1)
+    for i in range(args.trials):
+        plot_num_arms_vs_regret_single_trial(args.output, args.name, i+1)
+        plot_time_vs_regret(args.output, args.name, i+1)

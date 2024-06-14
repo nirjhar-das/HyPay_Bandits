@@ -9,7 +9,7 @@ all_regret = {'LinUCB': np.zeros((10000000,)), 'DisLinUCB': np.zeros((10000000,)
 time_steps = np.arange(1, 10000000+1)
 
 i = 1
-for root, _, files in os.walk('./New_Result'):
+for root, _, files in os.walk('./Results'):
     for filename in files:
         if '10000000' in filename and '.csv' in filename:
             _, ax = plt.subplots(1, 1, figsize=(10, 6))
@@ -27,7 +27,7 @@ for root, _, files in os.walk('./New_Result'):
             ax.set_xlabel('Time', size=16)
             ax.set_ylabel('Relative Regret', size=16)
             ax.ticklabel_format(axis='both', scilimits=[0, 0])
-            plt.savefig(os.path.join('./All_Sim_Final', f'Yahoo-Semi-Synthetic-10000000-{i}-Final.png'), dpi=200)
+            plt.savefig(os.path.join('./Results', f'Yahoo-Semi-Synthetic-10000000-{i}-Final-Relative.png'), dpi=200)
             i += 1
 
 for k in all_regret.keys():
@@ -44,4 +44,4 @@ ax.set_title('Yahoo! Front Page', fontsize=18)
 ax.set_xlabel('Time', size=18)
 ax.set_ylabel('Relative Regret', size=18)
 ax.ticklabel_format(axis='both', scilimits=[0, 0])
-plt.savefig(os.path.join('./All_Sim_Final', f'Yahoo-Semi-Synthetic-10000000-Final.png'), dpi=200)
+plt.savefig(os.path.join('./Results', f'Yahoo-Semi-Synthetic-10000000-Final-Relative.png'), dpi=200)
