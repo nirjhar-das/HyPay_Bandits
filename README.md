@@ -41,7 +41,7 @@ $ bash ./scripts/diversity.sh
 ```
 The first script reproduces the results for the synthetic data experiments in the paper and the second script re-creates the results for the experiments with the [Yahoo! Dataset](https://webscope.sandbox.yahoo.com/catalog.php?datatype=r&did=49). The last shell script reproduces the results for the experiments in Appendix F of the paper.
 
-For the Yahoo! experiment, we also provide the weights of the learnt reward model in the [lin_reg_model_36_6_20.pt](./Results/lin_reg_model_36_6_20.pt) file. This is automatically loaded as $\theta^\*, `{\beta^\*\_i\}`\_`{i \in [K]}`$ for the semi-synthetic reward model (see Section 4.2 of the paper). To freshly train the parameters, remove the file from the [Results](./Results/) folder and then run the `yahoo.sh` script.
+For the Yahoo! experiment, we also provide the weights of the learnt reward model in the [lin_reg_model_36_6_20.pt](./Results/lin_reg_model_36_6_20.pt) file. This is automatically loaded as $\theta^\*$, $`\{\beta^\*\_i\}`\_{i \in [K]}$ for the semi-synthetic reward model (see Section 4.2 of the paper). To freshly train the parameters, remove the file from the [Results](./Results/) folder and then run the `yahoo.sh` script.
 
 All outputs are saved in the [Results](./Results/) folder.
 
