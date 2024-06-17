@@ -1,4 +1,4 @@
-Official Code base for the paper [_Linear Contextual Bandits with Hybrid Payoff: Revisited_](https://drive.google.com/file/d/1WBSkGySeW7t7uCaWlMlLVM3gqK4YQEhs/view?usp=drive_link) by [Nirjhar Das](https://nirjhar-das.github.io/) and [Gaurav Sinha](https://sinhagaurav.github.io/).
+Official Code base for the paper [_Linear Contextual Bandits with Hybrid Payoff: Revisited_](https://arxiv.org/abs/2406.10131) by [Nirjhar Das](https://nirjhar-das.github.io/) and [Gaurav Sinha](https://sinhagaurav.github.io/).
 
 ## Installation
 The code base has dependency on basic packages listed in [requirements.txt](./requirements.txt). The code was tested in conda environment but we believe it can be run without conda as long as the required packages are present. They can be installed via the following command:
